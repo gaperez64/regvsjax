@@ -1,4 +1,6 @@
 jax==0.4.26
+jax-metal==0.0.6
+jaxlib==0.4.23
 ml-dtypes==0.4.0
 numpy==1.26.4
 opt-einsum==3.3.0
@@ -8,3 +10,4 @@ pytz==2024.1
 scipy==1.13.0
 six==1.16.0
 tzdata==2024.1
+wheel==0.43.0
