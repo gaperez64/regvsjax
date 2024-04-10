@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
@@ -20,21 +21,23 @@ def simulate():
 def plot(trajectories):
     summd = []
     for (S, E, Inf, R, V, day) in trajectories:
-        entry = ("Susceptible", S.sum(), day)
+        entry = ("Susceptible", float(S.sum()), day)
         summd.append(entry)
-        entry = ("Exposed", E.sum(), day)
+        entry = ("Exposed", float(E.sum()), day)
         summd.append(entry)
-        entry = ("Infectious", Inf.sum(), day)
+        entry = ("Infectious", float(Inf.sum()), day)
         summd.append(entry)
-        entry = ("Recovered", R.sum(), day)
+        entry = ("Recovered", float(R.sum()), day)
         summd.append(entry)
-        entry = ("Vaccinated", V.sum(), day)
+        entry = ("Vaccinated", float(V.sum()), day)
         summd.append(entry)
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
-    print(df)
-    sns.relplot(
-        data=df, x="Day", y="Population"
+    sns.lineplot(
+        data=df,
+        x="Day", y="Population",
+        hue="Compartment", style="Compartment"
     )
+    plt.show()
 
 
 if __name__ == "__main__":
