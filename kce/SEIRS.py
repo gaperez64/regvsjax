@@ -17,6 +17,7 @@ class Model:
         df.drop(df.tail(1).index, inplace=True)  # FIXME
         self.initPop = jnp.asarray(df["Population"].values,
                                    dtype=float)
+        self.totPop = float(self.initPop.sum())
         # TODO: vaccination efficacy
         # other parameters
         self.q = 1.8 / 15.2153
@@ -27,7 +28,10 @@ class Model:
         self.seedInf = 200
         self.seedAges = jnp.asarray(range(5, 51))
         self.delta = 0.7
+        # other constants
         self.peak = 1  # day of the year (out of 365)
+        self.birthday = 248  # 8 * 31 ~ End of August
+        self.startDate = 279  # 9 * 31 ~ End of September
 
     def init(self):
         S = self.initPop
@@ -35,7 +39,7 @@ class Model:
         Inf = jnp.zeros(S.size)
         R = jnp.zeros(S.size)
         V = jnp.zeros(S.size)
-        return (S, E, Inf, R, V)
+        return (S, E, Inf, R, V, self.startDate)
 
     # Using Forward Newton
     def step(self, S, E, Inf, R, V, day):
@@ -75,4 +79,12 @@ class Model:
         pass
 
     def age(self, S, E, Inf, R, V, day):
-        pass
+        newS = jnp.roll(S, 1).at[0].set(0)
+        newE = jnp.roll(E, 1).at[0].set(0)
+        newInf = jnp.roll(Inf, 1).at[0].set(0)
+        newR = jnp.roll(R, 1).at[0].set(0)
+        newV = jnp.roll(V, 1).at[0].set(0)
+        # reincarnating dead people
+        curPop = jnp.asarray([newS, newE, newInf, newR]).sum()
+        newS = newS.at[0].set(self.totPop - curPop)
+        return (newS, newE, newInf, newR, newV, day)

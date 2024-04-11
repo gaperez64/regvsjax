@@ -1,14 +1,31 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import jax.numpy as jnp
 import seaborn as sns
 
-from kce.SEIRV import Model
+from kce.SEIRS import Model
+
+
+def testAge():
+    m = Model()
+    m.totPop = 10
+    S = jnp.asarray([3.0, 3.0])
+    E = jnp.asarray([0.0, 0.0])
+    Inf = jnp.asarray([2.0, 2.0])
+    R = jnp.asarray([0.0, 0.0])
+    V = jnp.asarray([0.0, 0.0])
+    day = 1
+    state = (S, E, Inf, R, V, day)
+    print(state)
+    state = m.age(*state)
+    print(state)
+    state = m.age(*state)
+    print(state)
 
 
 def simulate():
     m = Model()
-    (S, E, Inf, R, V) = m.init()
-    day = 279  # 9 * 31 ~ End of September
+    (S, E, Inf, R, V, day) = m.init()
     state = (S, E, Inf, R, V, day)
     state = m.seedInfs(*state)
     trajectories = [state]
@@ -41,7 +58,8 @@ def plot(trajectories):
 
 
 if __name__ == "__main__":
-    ts = simulate()
-    print("Done with simulations, trajectories acquired!")
-    plot(ts)
+    # ts = simulate()
+    # print("Done with simulations, trajectories acquired!")
+    # plot(ts)
+    testAge()
     exit(0)
