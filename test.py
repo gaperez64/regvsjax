@@ -1,36 +1,28 @@
+import jax
 import matplotlib.pyplot as plt
 import pandas as pd
-import jax.numpy as jnp
 import seaborn as sns
 
 from kce.SEIRS import Model
 
 
-def testAge():
-    m = Model()
-    m.totPop = 10
-    S = jnp.asarray([3.0, 3.0])
-    E = jnp.asarray([0.0, 0.0])
-    Inf = jnp.asarray([2.0, 2.0])
-    R = jnp.asarray([0.0, 0.0])
-    V = jnp.asarray([0.0, 0.0])
-    day = 1
-    state = (S, E, Inf, R, V, day)
-    print(state)
-    state = m.age(*state)
-    print(state)
-    state = m.age(*state)
-    print(state)
-
-
+# @jax.jit
 def simulate():
     m = Model()
     (S, E, Inf, R, V, day) = m.init()
     state = (S, E, Inf, R, V, day)
-    state = m.seedInfs(*state)
     trajectories = [state]
-    for _ in range(365):
+    for i in range(365 * 2):
+        if i % 365 == m.seedDate - 1:
+            print(f"Seeding infections, year {i // 356 + 1}")
+            state = m.seedInfs(*state)
         state = m.step(*state)
+        if i % 365 == m.birthday - 1:
+            print(f"Aging population, year {i // 365 + 1}")
+            state = m.age(*state)
+        if i % 365 == m.vaccDate - 1:
+            print(f"Vaccinating the pro-vaxxers, year {i // 365 + 1}")
+            state = m.vaccinate(*state)
         trajectories.append(state)
     return trajectories
 
@@ -58,8 +50,7 @@ def plot(trajectories):
 
 
 if __name__ == "__main__":
-    # ts = simulate()
-    # print("Done with simulations, trajectories acquired!")
+    ts = simulate()
+    print("Done with simulations, trajectories acquired!")
     # plot(ts)
-    testAge()
     exit(0)

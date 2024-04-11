@@ -17,7 +17,7 @@ class Model:
         df.drop(df.tail(1).index, inplace=True)  # FIXME
         self.initPop = jnp.asarray(df["Population"].values,
                                    dtype=float)
-        self.totPop = float(self.initPop.sum())
+        self.totPop = self.initPop.sum().astype(float)
         # TODO: vaccination efficacy
         # other parameters
         self.q = 1.8 / 15.2153
@@ -32,6 +32,8 @@ class Model:
         self.peak = 1  # day of the year (out of 365)
         self.birthday = 248  # 8 * 31 ~ End of August
         self.startDate = 279  # 9 * 31 ~ End of September
+        self.seedDate = 341  # 11 * 31 ~ End of November
+        self.vaccDate = 289  # 9 * 31 + 10 ~ October 10
 
     def init(self):
         S = self.initPop
@@ -76,7 +78,7 @@ class Model:
         return (newS, newE, Inf, R, V, day)
 
     def vaccinate(self, S, E, Inf, R, V, day):
-        pass
+        return (S, E, Inf, R, V, day)
 
     def age(self, S, E, Inf, R, V, day):
         newS = jnp.roll(S, 1).at[0].set(0)
@@ -84,7 +86,7 @@ class Model:
         newInf = jnp.roll(Inf, 1).at[0].set(0)
         newR = jnp.roll(R, 1).at[0].set(0)
         newV = jnp.roll(V, 1).at[0].set(0)
-        # reincarnating dead people
+        # reincarnate dead people
         curPop = jnp.asarray([newS, newE, newInf, newR]).sum()
         newS = newS.at[0].set(self.totPop - curPop)
         return (newS, newE, newInf, newR, newV, day)
