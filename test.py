@@ -1,4 +1,3 @@
-import jax
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -6,51 +5,53 @@ import seaborn as sns
 from kce.SEIRS import Model
 
 
-# @jax.jit
-def simulate():
-    m = Model()
-    (S, E, Inf, R, V, day) = m.init()
-    state = (S, E, Inf, R, V, day)
+def simulate(m, noYears):
+    state = m.init()
     trajectories = [state]
-    for i in range(365 * 2):
-        if i % 365 == m.seedDate - 1:
-            print(f"Seeding infections, year {i // 356 + 1}")
+    for _ in range(365 * noYears):
+        (_, _, _, _, _, day) = state
+        if day % 365 == m.seedDate:
+            print(f"Seeding infections, year {day // 356 + 1}")
             state = m.seedInfs(*state)
         state = m.step(*state)
-        if i % 365 == m.birthday - 1:
-            print(f"Aging population, year {i // 365 + 1}")
+        if day % 365 == m.birthday:
+            print(f"Aging population, year {day // 365 + 1}")
             state = m.age(*state)
-        if i % 365 == m.vaccDate - 1:
-            print(f"Vaccinating the pro-vaxxers, year {i // 365 + 1}")
+        if day % 365 == m.vaccDate:
+            print(f"Vaccinating, year {day // 365 + 1}")
             state = m.vaccinate(*state)
         trajectories.append(state)
     return trajectories
 
 
-def plot(trajectories):
+def plot(m, trajectories, noYears):
     summd = []
     for (S, E, Inf, R, V, day) in trajectories:
-        entry = ("Susceptible", float(S.sum()), day)
+        entry = ("Susceptible", float(S.sum()), int(day))
         summd.append(entry)
-        entry = ("Exposed", float(E.sum()), day)
+        entry = ("Exposed", float(E.sum()), int(day))
         summd.append(entry)
-        entry = ("Infectious", float(Inf.sum()), day)
+        entry = ("Infectious", float(Inf.sum()), int(day))
         summd.append(entry)
-        entry = ("Recovered", float(R.sum()), day)
+        entry = ("Recovered", float(R.sum()), int(day))
         summd.append(entry)
-        entry = ("Vaccinated", float(V.sum()), day)
+        entry = ("Vaccinated", float(V.sum()), int(day))
         summd.append(entry)
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
-    sns.lineplot(
+    ax = sns.lineplot(
         data=df,
         x="Day", y="Population",
         hue="Compartment", style="Compartment"
     )
+    # ax.vlines(x=[m.seedDate + i
+    #              for i in range(0, 365 * noYears, 365)],
+    #           ymin=0, ymax=m.totPop)
     plt.show()
 
 
 if __name__ == "__main__":
-    ts = simulate()
-    print("Done with simulations, trajectories acquired!")
-    # plot(ts)
+    m = Model()
+    noYears = 6
+    ts = simulate(m, noYears)
+    plot(m, ts, noYears)
     exit(0)

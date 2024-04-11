@@ -1,3 +1,4 @@
+import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
@@ -43,34 +44,20 @@ class Model:
         V = jnp.zeros(S.size)
         return (S, E, Inf, R, V, self.startDate)
 
-    # Using Forward Newton
+    # We simulate one step of (forward) Newton integration
+    # with h = 1 (day). For efficiency, this just calls a
+    # function and passes the right arguments/attributes. Then,
+    # that function can be JIT compiled
     def step(self, S, E, Inf, R, V, day):
-        z = 1 + jnp.sin(2 * np.pi * (day - self.peak) / 365)
-        beta = self.contact * self.q
-        force = z * jnp.dot(beta, Inf)
-
-        # daily transitions
-        S2E = S * force  # element-wise product
-        E2I = E * self.sigma
-        I2R = Inf * self.gamma
-        R2S = R * self.omegaImm
-        V2S = V * self.omegaVacc
-
-        # daily mortality = element-wise product with mortality
-        # rates
-        S2D = S * self.dailyMort
-        E2D = E * self.dailyMort
-        I2D = Inf * self.dailyMort
-        R2D = R * self.dailyMort
-        V2D = R * self.dailyMort
-
-        # new values for all components
-        newS = S - S2E + R2S + V2S - S2D
-        newE = E + S2E - E2I - E2D
-        newInf = Inf + E2I - I2R - I2D
-        newR = R + I2R - R2S - R2D
-        newV = V - V2S - V2D
-        return (newS, newE, newInf, newR, newV, day + 1)
+        return _step(S, E, Inf, R, V, day,
+                     peak=self.peak,
+                     contact=self.contact,
+                     q=self.q,
+                     sigma=self.sigma,
+                     gamma=self.gamma,
+                     omegaImm=self.omegaImm,
+                     omegaVacc=self.omegaVacc,
+                     dailyMort=self.dailyMort)
 
     def seedInfs(self, S, E, Inf, R, V, day):
         newS = S.at[self.seedAges].add(-self.seedInf)
@@ -90,3 +77,35 @@ class Model:
         curPop = jnp.asarray([newS, newE, newInf, newR]).sum()
         newS = newS.at[0].set(self.totPop - curPop)
         return (newS, newE, newInf, newR, newV, day)
+
+
+@jax.jit
+def _step(S, E, Inf, R, V, day,
+          peak, contact, q, sigma, gamma,
+          omegaImm, omegaVacc, dailyMort):
+    z = 1 + jnp.sin(2 * np.pi * (day - peak) / 365)
+    beta = contact * q
+    force = z * jnp.dot(beta, Inf)
+
+    # daily transitions
+    S2E = S * force  # element-wise product
+    E2I = E * sigma
+    I2R = Inf * gamma
+    R2S = R * omegaImm
+    V2S = V * omegaVacc
+
+    # daily mortality = element-wise product with mortality
+    # rates
+    S2D = S * dailyMort
+    E2D = E * dailyMort
+    I2D = Inf * dailyMort
+    R2D = R * dailyMort
+    V2D = R * dailyMort
+
+    # new values for all components
+    newS = S - S2E + R2S + V2S - S2D
+    newE = E + S2E - E2I - E2D
+    newInf = Inf + E2I - I2R - I2D
+    newR = R + I2R - R2S - R2D
+    newV = V - V2S - V2D
+    return (newS, newE, newInf, newR, newV, day + 1)
