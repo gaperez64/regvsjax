@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
+from operator import mul
 import pandas as pd
 
 
@@ -19,7 +20,8 @@ class Model:
         self.initPop = jnp.asarray(df["Population"].values,
                                    dtype=float)
         self.totPop = self.initPop.sum().astype(float)
-        # TODO: vaccination efficacy
+        # vaccination stats
+        self.vaccRates = _vaccRates()
         # other parameters
         self.q = 1.8 / 15.2153
         self.sigma = 0.5
@@ -65,18 +67,39 @@ class Model:
         return (newS, newE, Inf, R, V, day)
 
     def vaccinate(self, S, E, Inf, R, V, day):
-        return (S, E, Inf, R, V, day)
+        return _vaccinate(S, E, Inf, R, V, day, self.vaccRates)
 
     def age(self, S, E, Inf, R, V, day):
-        newS = jnp.roll(S, 1).at[0].set(0)
-        newE = jnp.roll(E, 1).at[0].set(0)
-        newInf = jnp.roll(Inf, 1).at[0].set(0)
-        newR = jnp.roll(R, 1).at[0].set(0)
-        newV = jnp.roll(V, 1).at[0].set(0)
-        # reincarnate dead people
-        curPop = jnp.asarray([newS, newE, newInf, newR]).sum()
-        newS = newS.at[0].set(self.totPop - curPop)
-        return (newS, newE, newInf, newR, newV, day)
+        return _age(S, E, Inf, R, V, day, self.totPop)
+
+
+@jax.jit
+def _vaccinate(S, E, Inf, R, V, day, vaccRates):
+    # vaccination = element-wise product with vaccRates
+    S2V = S * vaccRates
+    E2V = E * vaccRates
+    I2V = Inf * vaccRates
+    R2V = R * vaccRates
+    # updates
+    newS = S - S2V
+    newE = E - E2V
+    newInf = Inf - I2V
+    newR = R - R2V
+    newV = V + S2V + E2V + I2V + R2V
+    return (newS, newE, newInf, newR, newV, day)
+
+
+@jax.jit
+def _age(S, E, Inf, R, V, day, totPop):
+    newS = jnp.roll(S, 1).at[0].set(0)
+    newE = jnp.roll(E, 1).at[0].set(0)
+    newInf = jnp.roll(Inf, 1).at[0].set(0)
+    newR = jnp.roll(R, 1).at[0].set(0)
+    newV = jnp.roll(V, 1).at[0].set(0)
+    # reincarnate dead people
+    curPop = jnp.asarray([newS, newE, newInf, newR]).sum()
+    newS = newS.at[0].set(totPop - curPop)
+    return (newS, newE, newInf, newR, newV, day)
 
 
 @jax.jit
@@ -109,3 +132,27 @@ def _step(S, E, Inf, R, V, day,
     newR = R + I2R - R2S - R2D
     newV = V - V2S - V2D
     return (newS, newE, newInf, newR, newV, day + 1)
+
+
+def _vaccRates():
+    # we create a pandas data frame first
+    # start with coverage
+    covs = []
+    covs.append(0.00066 / 2.0)
+    covs.extend([0.00066] * 17)
+    covs.extend([0.11] * 32)
+    covs.extend([0.28] * 15)
+    covs.extend([0.50] * 10)
+    covs.extend([0.71] * 25)
+    # moving to efficacy now
+    effs = []
+    effs.extend([0.5241] * 2)
+    effs.extend([0.57] * 16)
+    effs.extend([0.616] * 47)
+    effs.extend([0.58] * 35)
+    assert len(covs) == len(effs)
+    # zip and return them
+    vs = zip(covs, effs)
+    vs = map(mul(vs))
+    df = pd.DataFrame(vs, columns=["Coverage x Efficacy"])
+    return jnp.asarray(df.values)
