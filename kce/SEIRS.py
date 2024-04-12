@@ -1,7 +1,6 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
-from operator import mul
 import pandas as pd
 
 
@@ -14,14 +13,17 @@ class Model:
         df = pd.read_csv("data/rateMor_eurostat_2021.csv")
         df.drop(df.tail(1).index, inplace=True)  # FIXME
         self.dailyMort = jnp.asarray(df["Value"].values) / 365
+        print(self.dailyMort.shape)
         # initial population
         df = pd.read_csv("data/refPop_eurostat_2021.csv")
         df.drop(df.tail(1).index, inplace=True)  # FIXME
         self.initPop = jnp.asarray(df["Population"].values,
                                    dtype=float)
         self.totPop = self.initPop.sum().astype(float)
+        print(self.initPop.shape)
         # vaccination stats
         self.vaccRates = _vaccRates()
+        print(self.vaccRates.shape)
         # other parameters
         self.q = 1.8 / 15.2153
         self.sigma = 0.5
@@ -73,7 +75,7 @@ class Model:
         return _age(S, E, Inf, R, V, day, self.totPop)
 
 
-@jax.jit
+# @jax.jit
 def _vaccinate(S, E, Inf, R, V, day, vaccRates):
     # vaccination = element-wise product with vaccRates
     S2V = S * vaccRates
@@ -153,6 +155,6 @@ def _vaccRates():
     assert len(covs) == len(effs)
     # zip and return them
     vs = zip(covs, effs)
-    vs = map(mul(vs))
-    df = pd.DataFrame(vs, columns=["Coverage x Efficacy"])
-    return jnp.asarray(df.values)
+    vs = map(lambda t: t[0] * t[1], vs)
+    df = pd.DataFrame(vs, columns=["CovXEff"])
+    return jnp.asarray(df["CovXEff"].values)

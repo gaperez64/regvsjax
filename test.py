@@ -51,7 +51,7 @@ def plot(m, trajectories, noYears):
 
 if __name__ == "__main__":
     m = Model()
-    noYears = 6
+    noYears = 10
     ts = simulate(m, noYears)
     plot(m, ts, noYears)
     exit(0)
