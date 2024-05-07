@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 # vaccination programs CSV files (current directory)
-directory = "."
+directory = "vaccination_programs"
 
 # absolute path of the current directory
 directory = os.path.abspath(directory)
