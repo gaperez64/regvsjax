@@ -11,33 +11,32 @@ class Model:
         self.contact = jnp.asarray(df.values)
         # mortality rates
         df = pd.read_csv("data/rateMor_eurostat_2021.csv")
-        df.drop(df.tail(1).index, inplace=True)  # FIXME
+        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
         self.dailyMort = jnp.asarray(df["Value"].values) / 365
-        print(self.dailyMort.shape)
         # initial population
         df = pd.read_csv("data/refPop_eurostat_2021.csv")
-        df.drop(df.tail(1).index, inplace=True)  # FIXME
+        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
         self.initPop = jnp.asarray(df["Population"].values,
                                    dtype=float)
         self.totPop = self.initPop.sum().astype(float)
-        print(self.initPop.shape)
         # vaccination stats
         self.vaccRates = _vaccRates()
-        print(self.vaccRates.shape)
         # other parameters
-        self.q = 1.8 / 15.2153
+        self.q = 1.8 / 15.2153  # FIXME: the numerator is a randomized R0
         self.sigma = 0.5
         self.gamma = 0.5
         self.omegaImm = 0.33 / 365
         self.omegaVacc = 0.33 / 365
         self.seedInf = 200
         self.seedAges = jnp.asarray(range(5, 51))
-        self.delta = 0.7
+        self.delta = 0.7  # FIXME: this one is randomized too
         # other constants
         self.peak = 1  # day of the year (out of 365)
+        # FIXME: the peak/reference day above should be randomized too
         self.birthday = 248  # 8 * 31 ~ End of August
         self.startDate = 279  # 9 * 31 ~ End of September
         self.seedDate = 341  # 11 * 31 ~ End of November
+        # FIXME: the seeding date above is also randomized
         self.vaccDate = 289  # 9 * 31 + 10 ~ October 10
 
     def init(self):
@@ -136,25 +135,9 @@ def _step(S, E, Inf, R, V, day,
     return (newS, newE, newInf, newR, newV, day + 1)
 
 
-def _vaccRates():
-    # we create a pandas data frame first
-    # start with coverage
-    covs = []
-    covs.append(0.00066 / 2.0)
-    covs.extend([0.00066] * 17)
-    covs.extend([0.11] * 32)
-    covs.extend([0.28] * 15)
-    covs.extend([0.50] * 10)
-    covs.extend([0.71] * 25)
-    # moving to efficacy now
-    effs = []
-    effs.extend([0.5241] * 2)
-    effs.extend([0.57] * 16)
-    effs.extend([0.616] * 47)
-    effs.extend([0.58] * 35)
-    assert len(covs) == len(effs)
-    # zip and return them
-    vs = zip(covs, effs)
-    vs = map(lambda t: t[0] * t[1], vs)
-    df = pd.DataFrame(vs, columns=["CovXEff"])
+def _vaccRates(prog="baseline"):
+    df = pd.read_csv(f"data/program_{prog}.csv")
+    print(df)
+    df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
+                             axis=1)
     return jnp.asarray(df["CovXEff"].values)
