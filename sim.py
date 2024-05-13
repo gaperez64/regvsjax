@@ -20,6 +20,8 @@ def simulate(m, noYears):
         if day % 365 == m.vaccDate:
             print(f"Vaccinating, year {day // 365 + 1}")
             state = m.vaccinate(*state)
+        # TODO: call m.switchProgram("prog name") after an
+        # appropriate number of days
         trajectories.append(state)
     return trajectories
 
@@ -38,7 +40,8 @@ def plot(m, trajectories, noYears):
         entry = ("Vaccinated", float(V.sum()), int(day))
         summd.append(entry)
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
-    ax = sns.lineplot(
+    # ax =
+    sns.lineplot(
         data=df,
         x="Day", y="Population",
         hue="Compartment", style="Compartment"

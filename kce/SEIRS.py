@@ -5,6 +5,9 @@ import pandas as pd
 
 
 class Model:
+    def switchProgram(self, prog="baseline"):
+        self.vaccRates = _vaccRates(prog)
+
     def __init__(self):
         # contact matrix
         df = pd.read_csv("data/close+15_old.csv")
@@ -20,7 +23,7 @@ class Model:
                                    dtype=float)
         self.totPop = self.initPop.sum().astype(float)
         # vaccination stats
-        self.vaccRates = _vaccRates()
+        self.switchProgram()
         # other parameters
         self.q = 1.8 / 15.2153  # FIXME: the numerator is a randomized R0
         self.sigma = 0.5
@@ -33,9 +36,9 @@ class Model:
         # other constants
         self.peak = 1  # day of the year (out of 365)
         # FIXME: the peak/reference day above should be randomized too
-        self.birthday = 248  # 8 * 31 ~ End of August
+        self.birthday = 248   # 8 * 31 ~ End of August
         self.startDate = 279  # 9 * 31 ~ End of September
-        self.seedDate = 341  # 11 * 31 ~ End of November
+        self.seedDate = 341   # 11 * 31 ~ End of November
         # FIXME: the seeding date above is also randomized
         self.vaccDate = 289  # 9 * 31 + 10 ~ October 10
 
@@ -135,7 +138,7 @@ def _step(S, E, Inf, R, V, day,
     return (newS, newE, newInf, newR, newV, day + 1)
 
 
-def _vaccRates(prog="baseline"):
+def _vaccRates(prog):
     df = pd.read_csv(f"data/program_{prog}.csv")
     print(df)
     df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
