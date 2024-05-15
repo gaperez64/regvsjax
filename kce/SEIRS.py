@@ -1,3 +1,4 @@
+from functools import partial
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -19,11 +20,19 @@ class Model:
         # initial population
         df = pd.read_csv("data/refPop_eurostat_2021.csv")
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
-        self.initPop = jnp.asarray(df["Population"].values,
-                                   dtype=float)
+        self.initPop = jnp.asarray(df["Population"].values, dtype=float)
         self.totPop = self.initPop.sum().astype(float)
+        # Detailed infection rates
+        df = pd.read_csv("data/influenzaRate.csv")
+        self.influenzaRate = jnp.asarray(df["Rate"].values, dtype=float)
+        df = pd.read_csv("data/hospRate.csv")
+        self.hospRate = jnp.asarray(df["Rate"].values, dtype=float)
+        df = pd.read_csv("data/caseFatalityRate.csv")
+        self.caseFatalityRate = jnp.asarray(df["Rate"].values, dtype=float)
         # vaccination stats
         self.switchProgram()
+
+        # FIXME: All values below should be loaded from a settings/JSON file
         # other parameters
         self.q = 1.8 / 15.2153  # FIXME: the numerator is a randomized R0
         self.sigma = 0.5
@@ -33,7 +42,9 @@ class Model:
         self.seedInf = 200
         self.seedAges = jnp.asarray(range(5, 51))
         self.delta = 0.7  # FIXME: this one is randomized too
+
         # other constants
+        self.noMedCare = 0.492
         self.peak = 1  # day of the year (out of 365)
         # FIXME: the peak/reference day above should be randomized too
         self.birthday = 248   # 8 * 31 ~ End of August
@@ -51,19 +62,46 @@ class Model:
         return (S, E, Inf, R, V, self.startDate)
 
     # We simulate one step of (forward) Newton integration
-    # with h = 1 (day). For efficiency, this just calls a
-    # function and passes the right arguments/attributes. Then,
-    # that function can be JIT compiled
+    # with h = 1 (day). For efficiency, the method is JIT compiled
+    # NOTE: if any object attributes change after the first call,
+    # this will result in incorrect results as we assume self
+    # to be static
+    @partial(jax.jit, static_argnums=0)
     def step(self, S, E, Inf, R, V, day):
-        return _step(S, E, Inf, R, V, day,
-                     peak=self.peak,
-                     contact=self.contact,
-                     q=self.q,
-                     sigma=self.sigma,
-                     gamma=self.gamma,
-                     omegaImm=self.omegaImm,
-                     omegaVacc=self.omegaVacc,
-                     dailyMort=self.dailyMort)
+        z = 1 + jnp.sin(2 * np.pi * (day - self.peak) / 365)
+        beta = self.contact * self.q
+        force = z * jnp.dot(beta, Inf)
+
+        # daily transitions
+        S2E = S * force  # element-wise product
+        E2I = E * self.sigma
+        I2R = Inf * self.gamma
+        R2S = R * self.omegaImm
+        V2S = V * self.omegaVacc
+
+        # daily mortality = element-wise product with mortality
+        # rates
+        S2D = S * self.dailyMort
+        E2D = E * self.dailyMort
+        I2D = Inf * self.dailyMort
+        R2D = R * self.dailyMort
+        V2D = V * self.dailyMort
+
+        # new values for all components
+        newS = S - S2E + R2S + V2S - S2D
+        newE = E + S2E - E2I - E2D
+        newInf = Inf + E2I - I2R - I2D
+        newR = R + I2R - R2S - R2D
+        newV = V - V2S - V2D
+
+        # breakdown of new infections
+        confirmedInf = newInf * self.influenzaRate
+        noMedCare = (confirmedInf / self.noMedCare) - confirmedInf
+        hospd = confirmedInf * self.hospRate
+        fatal = confirmedInf * self.caseFatalityRate
+
+        return (newS, newE, newInf, newR, newV, day + 1,
+                confirmedInf, noMedCare, hospd, fatal)
 
     def seedInfs(self, S, E, Inf, R, V, day):
         newS = S.at[self.seedAges].add(-self.seedInf)
@@ -77,7 +115,7 @@ class Model:
         return _age(S, E, Inf, R, V, day, self.totPop)
 
 
-# @jax.jit
+@jax.jit
 def _vaccinate(S, E, Inf, R, V, day, vaccRates):
     # vaccination = element-wise product with vaccRates
     S2V = S * vaccRates
@@ -106,41 +144,8 @@ def _age(S, E, Inf, R, V, day, totPop):
     return (newS, newE, newInf, newR, newV, day)
 
 
-@jax.jit
-def _step(S, E, Inf, R, V, day,
-          peak, contact, q, sigma, gamma,
-          omegaImm, omegaVacc, dailyMort):
-    z = 1 + jnp.sin(2 * np.pi * (day - peak) / 365)
-    beta = contact * q
-    force = z * jnp.dot(beta, Inf)
-
-    # daily transitions
-    S2E = S * force  # element-wise product
-    E2I = E * sigma
-    I2R = Inf * gamma
-    R2S = R * omegaImm
-    V2S = V * omegaVacc
-
-    # daily mortality = element-wise product with mortality
-    # rates
-    S2D = S * dailyMort
-    E2D = E * dailyMort
-    I2D = Inf * dailyMort
-    R2D = R * dailyMort
-    V2D = R * dailyMort
-
-    # new values for all components
-    newS = S - S2E + R2S + V2S - S2D
-    newE = E + S2E - E2I - E2D
-    newInf = Inf + E2I - I2R - I2D
-    newR = R + I2R - R2S - R2D
-    newV = V - V2S - V2D
-    return (newS, newE, newInf, newR, newV, day + 1)
-
-
 def _vaccRates(prog):
     df = pd.read_csv(f"data/program_{prog}.csv")
-    print(df)
     df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
                              axis=1)
     return jnp.asarray(df["CovXEff"].values)

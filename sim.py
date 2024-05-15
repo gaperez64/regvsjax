@@ -13,7 +13,8 @@ def simulate(m, noYears):
         if day % 365 == m.seedDate:
             print(f"Seeding infections, year {day // 356 + 1}")
             state = m.seedInfs(*state)
-        state = m.step(*state)
+        extState = m.step(*state)
+        state = extState[0:6]
         if day % 365 == m.birthday:
             print(f"Aging population, year {day // 365 + 1}")
             state = m.age(*state)
