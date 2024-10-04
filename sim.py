@@ -8,23 +8,25 @@ from kce.SEIRS import Model
 
 def simulate(m, endDate):
     state = m.init()
-    trajectories = [state]
+    trajectories = []
     curDate = m.startDate
-    while curDate <= endDate:
+    # while curDate <= endDate:
+    for _ in range(51):
         (_, _, _, _, _, day) = state
         assert (m.startDate + timedelta(days=int(day))) == curDate
 
+        if (curDate.month, curDate.day) == m.vaccDate:
+            print(f"Vaccinating, year {curDate}")
+            state = m.vaccinate(*state)
         if (curDate.month, curDate.day) == m.seedDate:
-            print(f"Seeding infections, year {curDate.year}")
+            print(f"Seeding infections, year {curDate}")
             state = m.seedInfs(*state)
         extState = m.step(*state)
         state = extState[0:6]
         if (curDate.month, curDate.day) == m.birthday:
-            print(f"Aging population, year {curDate.year}")
+            print(f"Aging population, year {curDate}")
             state = m.age(*state)
-        if (curDate.month, curDate.day) == m.vaccDate:
-            print(f"Vaccinating, year {curDate.year}")
-            state = m.vaccinate(*state)
+
         # TODO: call m.switchProgram("prog name") after an
         # appropriate number of days
         trajectories.append(state)
@@ -45,6 +47,11 @@ def plot(m, trajectories):
         summd.append(entry)
         entry = ("Vaccinated", float(V.sum()), int(day))
         summd.append(entry)
+        print(",".join([str(float(s)) for s in S]))
+        print(",".join([str(float(e)) for e in E]))
+        print(",".join([str(float(i)) for i in Inf]))
+        print(",".join([str(float(r)) for r in R]))
+        print(",".join([str(float(v)) for v in V]))
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
     sns.lineplot(
         data=df,

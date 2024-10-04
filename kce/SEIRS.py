@@ -47,13 +47,15 @@ class Model:
 
         # other constants
         self.noMedCare = 0.492
-        self.peak = date(year=2016, month=9, day=1)       # FIXME: year
+        # FIXME: This is a random nr. of days after the (fixed)
+        # start of the season
+        self.peak = date(year=2016, month=9, day=21)      # FIXME: year
         # FIXME: the peak/reference day above should be randomized too
         self.birthday = (8, 31)   # End of August
         self.startDate = date(year=2016, month=9, day=1)  # FIXME: year
         self.seedDate = (8, 31)   # End of November
         # FIXME: the seeding date above is also randomized
-        self.vaccDate = (10, 10)  # October 10
+        self.vaccDate = (10, 11)  # October 10
 
     def init(self):
         S = self.initPop
@@ -85,6 +87,7 @@ class Model:
         # daily mortality = element-wise product with mortality
         # rates
         S2D = S * self.dailyMort
+        print(S2D)
         E2D = E * self.dailyMort
         I2D = Inf * self.dailyMort
         R2D = R * self.dailyMort
