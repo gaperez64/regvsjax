@@ -1,3 +1,4 @@
+from datetime import date
 from functools import partial
 import jax
 import jax.numpy as jnp
@@ -45,13 +46,13 @@ class Model:
 
         # other constants
         self.noMedCare = 0.492
-        self.peak = 1  # day of the year (out of 365)
+        self.peak = date(year=2024, month=1, day=1)       # FIXME: year
         # FIXME: the peak/reference day above should be randomized too
-        self.birthday = 248   # 8 * 31 ~ End of August
-        self.startDate = 279  # 9 * 31 ~ End of September
-        self.seedDate = 341   # 11 * 31 ~ End of November
+        self.birthday = (8, 31)   # End of August
+        self.startDate = date(year=2024, month=9, day=9)  # FIXME: year
+        self.seedDate = (11, 30)  # End of November
         # FIXME: the seeding date above is also randomized
-        self.vaccDate = 289  # 9 * 31 + 10 ~ October 10
+        self.vaccDate = (10, 10)  # October 10
 
     def init(self):
         S = self.initPop
@@ -59,7 +60,7 @@ class Model:
         Inf = jnp.zeros(S.size)
         R = jnp.zeros(S.size)
         V = jnp.zeros(S.size)
-        return (S, E, Inf, R, V, self.startDate)
+        return (S, E, Inf, R, V, 0)
 
     # We simulate one step of (forward) Newton integration
     # with h = 1 (day). For efficiency, the method is JIT compiled
@@ -68,7 +69,8 @@ class Model:
     # to be static
     @partial(jax.jit, static_argnums=0)
     def step(self, S, E, Inf, R, V, day):
-        z = 1 + jnp.sin(2 * np.pi * (day - self.peak) / 365)
+        z = 1 + jnp.sin(2 * np.pi *
+                        ((self.startDate - self.peak).days + day) / 365)
         beta = self.contact * self.q
         force = z * jnp.dot(beta, Inf)
 
