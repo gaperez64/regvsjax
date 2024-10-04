@@ -11,6 +11,7 @@ class Model:
         self.vaccRates = _vaccRates(prog)
 
     def __init__(self):
+        # FIXME: Factor out hardcoded data manipulations
         # contact matrix
         df = pd.read_csv("data/close+15_old.csv")
         self.contact = jnp.asarray(df.values)
@@ -35,22 +36,22 @@ class Model:
 
         # FIXME: All values below should be loaded from a settings/JSON file
         # other parameters
-        self.q = 1.8 / 15.2153  # FIXME: the numerator is a randomized R0
-        self.sigma = 0.5
-        self.gamma = 0.5
-        self.omegaImm = 0.33 / 365
-        self.omegaVacc = 0.33 / 365
+        self.q = 1.8 / 30.35392  # FIXME: the numerator is a randomized R0
+        self.sigma = 1
+        self.gamma = 0.26316
+        self.omegaImm = 1 / (6 * 365)
+        self.omegaVacc = 1 / (6 * 365)
         self.seedInf = 200
         self.seedAges = jnp.asarray(range(5, 51))
-        self.delta = 0.7  # FIXME: this one is randomized too
+        self.delta = 0.43  # FIXME: this one is randomized too
 
         # other constants
         self.noMedCare = 0.492
-        self.peak = date(year=2024, month=1, day=1)       # FIXME: year
+        self.peak = date(year=2016, month=9, day=1)       # FIXME: year
         # FIXME: the peak/reference day above should be randomized too
         self.birthday = (8, 31)   # End of August
-        self.startDate = date(year=2024, month=9, day=9)  # FIXME: year
-        self.seedDate = (11, 30)  # End of November
+        self.startDate = date(year=2016, month=9, day=1)  # FIXME: year
+        self.seedDate = (8, 31)   # End of November
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 10)  # October 10
 

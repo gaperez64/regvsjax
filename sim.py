@@ -56,7 +56,7 @@ def plot(m, trajectories):
 
 if __name__ == "__main__":
     m = Model()
-    endDate = date(year=2034, month=11, day=1)
+    endDate = date(year=2023, month=12, day=31)
     ts = simulate(m, endDate)
     plot(m, ts)
     exit(0)
