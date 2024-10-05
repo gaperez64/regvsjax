@@ -1,9 +1,13 @@
 from datetime import date, timedelta
+import jax
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
 from kce.SEIRS import Model
+
+
+jax.config.update("jax_enable_x64", True)
 
 
 def simulate(m, endDate):

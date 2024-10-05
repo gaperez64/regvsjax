@@ -22,15 +22,15 @@ class Model:
         # initial population
         df = pd.read_csv("data/refPop_eurostat_2021.csv")
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
-        self.initPop = jnp.asarray(df["Population"].values, dtype=float)
-        self.totPop = self.initPop.sum().astype(float)
+        self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
+        self.totPop = self.initPop.sum().astype(jnp.float64)
         # Detailed infection rates
         df = pd.read_csv("data/influenzaRate.csv")
-        self.influenzaRate = jnp.asarray(df["Rate"].values, dtype=float)
+        self.influenzaRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
         df = pd.read_csv("data/hospRate.csv")
-        self.hospRate = jnp.asarray(df["Rate"].values, dtype=float)
+        self.hospRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
         df = pd.read_csv("data/caseFatalityRate.csv")
-        self.caseFatalityRate = jnp.asarray(df["Rate"].values, dtype=float)
+        self.caseFatalityRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
         # vaccination stats
         self.switchProgram()
 
