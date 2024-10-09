@@ -18,21 +18,24 @@ def simulate(m, endDate):
         (_, _, _, _, _, day) = state
         assert (m.startDate + timedelta(days=int(day))) == curDate
 
-        if (curDate.month, curDate.day) == m.vaccDate:
-            print(f"Vaccinating, year {curDate}")
-            state = m.vaccinate(*state)
         if (curDate.month, curDate.day) == m.seedDate:
             print(f"Seeding infections, year {curDate}")
             state = m.seedInfs(*state)
+
         extState = m.step(*state)
         state = extState[0:6]
-        if (curDate.month, curDate.day) == m.birthday:
-            print(f"Aging population, year {curDate}")
-            state = m.age(*state)
 
         # TODO: call m.switchProgram("prog name") after an
         # appropriate number of days
         trajectories.append(state)
+
+        if (curDate.month, curDate.day) == m.vaccDate:
+            print(f"Vaccinating, year {curDate}")
+            state = m.vaccinate(*state)
+        if (curDate.month, curDate.day) == m.birthday:
+            print(f"Aging population, year {curDate}")
+            state = m.age(*state)
+
         curDate = curDate + timedelta(days=1)
     return trajectories
 
