@@ -23,14 +23,16 @@ class Model:
         df = pd.read_csv("data/refPop_eurostat_2021.csv")
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
         self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
-        self.totPop = self.initPop.sum().astype(jnp.float64)
+        self.totPop = self.initPop.sum()
+        print(f" ****** Initial total population {self.totPop}")
         # Detailed infection rates
         df = pd.read_csv("data/influenzaRate.csv")
         self.influenzaRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
         df = pd.read_csv("data/hospRate.csv")
         self.hospRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
         df = pd.read_csv("data/caseFatalityRate.csv")
-        self.caseFatalityRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
+        self.caseFatalityRate = jnp.asarray(df["Rate"].values,
+                                            dtype=jnp.float64)
         # vaccination stats
         self.switchProgram()
 
@@ -49,10 +51,10 @@ class Model:
         self.noMedCare = 0.492
         # FIXME: This is a random nr. of days after the (fixed)
         # start of the season
-        self.peak = date(year=2016, month=9, day=21)      # FIXME: year
+        self.peak = date(year=2016, month=9, day=21)
         # FIXME: the peak/reference day above should be randomized too
         self.birthday = (8, 31)   # End of August
-        self.startDate = date(year=2016, month=9, day=1)  # FIXME: year
+        self.startDate = date(year=2016, month=9, day=1)
         self.seedDate = (8, 31)   # End of August
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 10)  # October 10
@@ -87,7 +89,6 @@ class Model:
         # daily mortality = element-wise product with mortality
         # rates
         S2D = S * self.dailyMort
-        print(S2D)
         E2D = E * self.dailyMort
         I2D = Inf * self.dailyMort
         R2D = R * self.dailyMort
@@ -145,7 +146,11 @@ def _age(S, E, Inf, R, V, day, totPop):
     newR = jnp.roll(R, 1).at[0].set(0)
     newV = jnp.roll(V, 1).at[0].set(0)
     # reincarnate dead people
-    curPop = jnp.asarray([newS, newE, newInf, newR]).sum()
+    curPop = jnp.asarray([newS.sum(),
+                          newE.sum(),
+                          newInf.sum(),
+                          newR.sum(),
+                          newV.sum()]).sum()
     newS = newS.at[0].set(totPop - curPop)
     return (newS, newE, newInf, newR, newV, day)
 
