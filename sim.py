@@ -7,15 +7,14 @@ import seaborn as sns
 from kce.SEIRS import Model
 
 
-jax.config.update("jax_enable_x64", True)
+# jax.config.update("jax_enable_x64", True)
 
 
 def simulate(m, endDate):
     state = m.init()
     trajectories = []
     curDate = m.startDate
-    # while curDate <= endDate:
-    for _ in range(51):
+    while curDate <= endDate:
         (_, _, _, _, _, day) = state
         assert (m.startDate + timedelta(days=int(day))) == curDate
 
@@ -67,7 +66,7 @@ def plot(m, trajectories):
 
 if __name__ == "__main__":
     m = Model()
-    endDate = date(year=2023, month=12, day=31)
+    endDate = date(year=2017, month=11, day=5)
     ts = simulate(m, endDate)
     plot(m, ts)
     exit(0)

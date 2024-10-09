@@ -51,9 +51,9 @@ class Model:
         # start of the season
         self.peak = date(year=2016, month=9, day=21)      # FIXME: year
         # FIXME: the peak/reference day above should be randomized too
-        self.birthday = (8, 31)   # End of August
+        self.birthday = (9, 1)   # End of August
         self.startDate = date(year=2016, month=9, day=1)  # FIXME: year
-        self.seedDate = (8, 31)   # End of November
+        self.seedDate = (9, 1)   # End of August
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 11)  # October 10
 
