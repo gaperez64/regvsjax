@@ -45,35 +45,40 @@ def simulate(m, endDate):
 def plot(m, trajectories):
     summd = []
     df = pd.read_csv("~/Downloads/output_431days.csv", header=None)
-    print(df.head)
     for (S, E, Inf, R, V, day) in trajectories:
         entry = ("Susceptible", float(S.sum()), int(day))
         summd.append(entry)
         entry = ("Reg's S", float(df.iloc[0].sum()), int(day))
         summd.append(entry)
+        if abs(summd[-1][1] - summd[-2][1]):
+            pass
         entry = ("Exposed", float(E.sum()), int(day))
         summd.append(entry)
         entry = ("Reg's E", float(df.iloc[1].sum()), int(day))
         summd.append(entry)
+
         entry = ("Infectious", float(Inf.sum()), int(day))
         summd.append(entry)
         entry = ("Reg's I", float(df.iloc[2].sum()), int(day))
         summd.append(entry)
+
         entry = ("Recovered", float(R.sum()), int(day))
         summd.append(entry)
         entry = ("Reg's R", float(df.iloc[3].sum()), int(day))
         summd.append(entry)
+
         entry = ("Vaccinated", float(V.sum()), int(day))
         summd.append(entry)
         entry = ("Reg's V", float(df.iloc[4].sum()), int(day))
         summd.append(entry)
+
         df = df.iloc[5:]
 
-        # print(",".join([str(float(s)) for s in S]))
-        # print(",".join([str(float(e)) for e in E]))
-        # print(",".join([str(float(i)) for i in Inf]))
-        # print(",".join([str(float(r)) for r in R]))
-        # print(",".join([str(float(v)) for v in V]))
+        print(",".join([str(float(s)) for s in S]))
+        print(",".join([str(float(e)) for e in E]))
+        print(",".join([str(float(i)) for i in Inf]))
+        print(",".join([str(float(r)) for r in R]))
+        print(",".join([str(float(v)) for v in V]))
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
     sns.lineplot(
         data=df,
