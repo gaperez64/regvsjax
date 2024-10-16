@@ -74,8 +74,8 @@ class Model:
     # to be static
     @partial(jax.jit, static_argnums=0)
     def step(self, S, E, Inf, R, V, day):
-        z = 1 + jnp.sin(2 * np.pi *
-                        ((self.startDate - self.peak).days + day) / 365)
+        daterng = (self.startDate - self.peak).days + day
+        z = 1 + self.delta * jnp.sin(2 * np.pi * (daterng / 365))
         beta = self.contact * self.q
         force = z * jnp.dot(beta, Inf)
 
