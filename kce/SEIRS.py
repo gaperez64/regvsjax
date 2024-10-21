@@ -50,6 +50,8 @@ class Model:
         # other constants
         self.noMedCare = 0.492
         # FIXME: This is a random nr. of days after the (fixed)
+        # FIXME: these values are not part of the model and are not used within this class. They need to be moved
+        #   to simulator.
         # start of the season
         self.peak = date(year=2016, month=9, day=21)
         # FIXME: the peak/reference day above should be randomized too
@@ -65,15 +67,17 @@ class Model:
         Inf = jnp.zeros(S.size)
         R = jnp.zeros(S.size)
         V = jnp.zeros(S.size)
-        return (S, E, Inf, R, V, 0)
+        return S, E, Inf, R, V, 0
 
-    # We simulate one step of (forward) Newton integration
-    # with h = 1 (day). For efficiency, the method is JIT compiled
-    # NOTE: if any object attributes change after the first call,
-    # this will result in incorrect results as we assume self
-    # to be static
     @partial(jax.jit, static_argnums=0)
     def step(self, S, E, Inf, R, V, day):
+        """
+            We simulate one step of (forward) Newton integration
+            with h = 1 (day). For efficiency, the method is JIT compiled
+            NOTE: if any object attributes change after the first call,
+            this will result in incorrect results as we assume self
+            to be static
+        """
         daterng = (self.startDate - self.peak).days + day
         z = 1 + self.delta * jnp.sin(2 * np.pi * (daterng / 365))
         beta = self.contact * self.q
@@ -113,7 +117,7 @@ class Model:
     def seedInfs(self, S, E, Inf, R, V, day):
         newS = S.at[self.seedAges].add(-self.seedInf)
         newE = E.at[self.seedAges].add(self.seedInf)
-        return (newS, newE, Inf, R, V, day)
+        return newS, newE, Inf, R, V, day
 
     def vaccinate(self, S, E, Inf, R, V, day):
         return _vaccinate(S, E, Inf, R, V, day, self.vaccRates)
@@ -135,7 +139,7 @@ def _vaccinate(S, E, Inf, R, V, day, vaccRates):
     newInf = Inf - I2V
     newR = R - R2V
     newV = V + S2V + E2V + I2V + R2V
-    return (newS, newE, newInf, newR, newV, day)
+    return newS, newE, newInf, newR, newV, day
 
 
 @jax.jit
@@ -152,7 +156,7 @@ def _age(S, E, Inf, R, V, day, totPop):
                           newR.sum(),
                           newV.sum()]).sum()
     newS = newS.at[0].set(totPop - curPop)
-    return (newS, newE, newInf, newR, newV, day)
+    return newS, newE, newInf, newR, newV, day
 
 
 def _vaccRates(prog):
