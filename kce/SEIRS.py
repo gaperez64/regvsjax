@@ -156,7 +156,7 @@ def _age(S, E, Inf, R, V, day, totPop):
 
 
 def _vaccRates(prog):
-    df = pd.read_csv(f"data/program_{prog}.csv")
+    df = pd.read_csv(f"vaccination_rates/program_{prog}.csv")
     df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
                              axis=1)
     return jnp.asarray(df["CovXEff"].values)
