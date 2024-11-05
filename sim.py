@@ -36,6 +36,8 @@ class ImportantDates:
 
 
 def simulate(model: Model, important_dates: ImportantDates):
+    # TODO: maybe move the "state" variable inside the model, and let it be owned by "step()"?
+    model.set_vacc_program(prog="baseline")
     state = model.init()
     trajectories = []
     curDate = important_dates.start_date

@@ -42,9 +42,15 @@ class EpidemParams:
         caseFatalityRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
         return caseFatalityRate
 
+    def get_vacc_rates(self, prog: str):
+        df = pd.read_csv(f"vaccination_rates/program_{prog}.csv")
+        df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
+                                 axis=1)
+        return jnp.asarray(df["CovXEff"].values)
+
 
 class Model:
-    def switchProgram(self, prog: str):
+    def set_vacc_program(self, prog: str):
         """
             Switch the vaccination rates to those of the program with the specified name.
 
@@ -53,13 +59,14 @@ class Model:
         prog: str
             The name of the program.
         """
-        self.vaccRates = _vaccRates(prog)
+        self.vaccRates = self.epidem_params.get_vacc_rates(prog)
 
     def __init__(self, epidem_params: EpidemParams):
         # TODO: factor out these values
         self.startDate = date(year=2017, month=8, day=27)
         self.peak = date(year=2016, month=9, day=21)
 
+        self.epidem_params = epidem_params
         self.dailyMort = epidem_params.get_daily_mortality()
         self.contact = epidem_params.get_contact_matrix()
         self.initPop = epidem_params.get_initial_pop()
@@ -69,9 +76,6 @@ class Model:
 
         self.totPop = self.initPop.sum()
         print(f" ****** Initial total population {self.totPop}")
-
-        # vaccination stats
-        self.switchProgram(prog="baseline")
 
         # FIXME: All values below should be loaded from a settings/JSON file
         # other parameters
@@ -113,6 +117,8 @@ class Model:
             NOTE: if any object attributes change after the first call,
             this will result in incorrect results as we assume self
             to be static
+
+            TODO: maybe move this one outside as well?
         """
         # TODO: figure this one out.
         daterng = (self.startDate - self.peak).days + day
@@ -152,6 +158,7 @@ class Model:
                 confirmedInf, noMedCare, hospd, fatal)
 
     def seedInfs(self, S, E, Inf, R, V, day):
+        # TODO: does this need to be jax.jit?
         newS = S.at[self.seedAges].add(-self.seedInf)
         newE = E.at[self.seedAges].add(self.seedInf)
         return newS, newE, Inf, R, V, day
@@ -194,10 +201,3 @@ def _age(S, E, Inf, R, V, day, totPop):
                           newV.sum()]).sum()
     newS = newS.at[0].set(totPop - curPop)
     return newS, newE, newInf, newR, newV, day
-
-
-def _vaccRates(prog):
-    df = pd.read_csv(f"vaccination_rates/program_{prog}.csv")
-    df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
-                             axis=1)
-    return jnp.asarray(df["CovXEff"].values)
