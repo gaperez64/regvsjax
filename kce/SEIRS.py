@@ -14,25 +14,42 @@ class Model:
         # FIXME: Factor out hardcoded data manipulations
         # contact matrix
         df = pd.read_csv("data/close+15_old.csv")
+        assert df.shape[0] == 100
         self.contact = jnp.asarray(df.values)
         # mortality rates
         df = pd.read_csv("data/rateMor_eurostat_2021.csv")
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
+        assert df.shape[0] == 100
         self.dailyMort = jnp.asarray(df["Value"].values) / 365
         # initial population
         df = pd.read_csv("data/refPop_eurostat_2021.csv")
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
+        assert df.shape[0] == 100
         self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
         self.totPop = self.initPop.sum()
         print(f" ****** Initial total population {self.totPop}")
         # Detailed infection rates
         df = pd.read_csv("data/influenzaRate.csv")
+        assert df.shape[0] == 100
         self.influenzaRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
         df = pd.read_csv("data/hospRate.csv")
+        assert df.shape[0] == 100
         self.hospRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
         df = pd.read_csv("data/caseFatalityRate.csv")
+        assert df.shape[0] == 100
         self.caseFatalityRate = jnp.asarray(df["Rate"].values,
                                             dtype=jnp.float64)
+        # Costs
+        df = pd.read_csv("econ_data/ambulatory_costs.csv", header=None)
+        assert df.shape[0] == 100
+        self.ambulatoryCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
+        df = pd.read_csv("econ_data/vaccine_cost.csv", header=None)
+        assert df.shape[0] == 100
+        self.vaccineCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
+        df = pd.read_csv("econ_data/no_medical_care_costs.csv", header=None)
+        assert df.shape[0] == 100
+        self.nomedCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
+
         # vaccination stats
         self.switchProgram()
 
@@ -51,14 +68,14 @@ class Model:
         self.noMedCare = 0.492
         # FIXME: This is a random nr. of days after the (fixed)
         # FIXME: these values are arguably not part of the model
-        # start of the season
-        self.peak = date(year=2016, month=9, day=21)
-        # FIXME: the peak/reference day above should be randomized too
         self.birthday = (8, 31)   # End of August
         self.startDate = date(year=2017, month=8, day=27)
         self.seedDate = (8, 31)   # End of August
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 10)  # October 10
+        # start of the season
+        self.peak = date(year=self.startDate.year, month=9, day=21)
+        # FIXME: the peak/reference day above should be randomized too
 
     def init(self):
         S = self.initPop
@@ -110,8 +127,13 @@ class Model:
         hospd = confirmedInf * self.hospRate
         fatal = confirmedInf * self.caseFatalityRate
 
+        # costs
+        ambCost = (confirmedInf - hospd) * self.ambulatoryCosts
+        noMedCost = noMedCare * self.nomedCosts
+        vaxCost = 0
+
         return (newS, newE, newInf, newR, newV, day + 1,
-                confirmedInf, noMedCare, hospd, fatal)
+                ambCost, noMedCost, vaxCost)
 
     def seedInfs(self, S, E, Inf, R, V, day):
         newS = S.at[self.seedAges].add(-self.seedInf)
@@ -119,14 +141,15 @@ class Model:
         return newS, newE, Inf, R, V, day
 
     def vaccinate(self, S, E, Inf, R, V, day):
-        return _vaccinate(S, E, Inf, R, V, day, self.vaccRates)
+        return _vaccinate(S, E, Inf, R, V, day, self.vaccRates,
+                          self.vaccineCosts)
 
     def age(self, S, E, Inf, R, V, day):
         return _age(S, E, Inf, R, V, day, self.totPop)
 
 
 @jax.jit
-def _vaccinate(S, E, Inf, R, V, day, vaccRates):
+def _vaccinate(S, E, Inf, R, V, day, vaccRates, vaccineCosts):
     # vaccination = element-wise product with vaccRates
     S2V = S * vaccRates
     E2V = E * vaccRates
@@ -138,7 +161,11 @@ def _vaccinate(S, E, Inf, R, V, day, vaccRates):
     newInf = Inf - I2V
     newR = R - R2V
     newV = V + S2V + E2V + I2V + R2V
-    return newS, newE, newInf, newR, newV, day
+
+    # cost
+    vaxCost = (newV - V) * vaccineCosts
+    return (newS, newE, newInf, newR, newV, day,
+            vaxCost)
 
 
 @jax.jit

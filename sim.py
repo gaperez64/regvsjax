@@ -9,6 +9,11 @@ from kce.SEIRS import Model
 # jax.config.update("jax_enable_x64", True)
 
 
+def updateVaxCost(t, vaxCost):
+    (*rest, vc) = t
+    return (*rest, vaxCost + vc)
+
+
 def simulate(m, endDate):
     state = m.init()
     trajectories = []
@@ -31,7 +36,9 @@ def simulate(m, endDate):
 
         if (curDate.month, curDate.day) == m.vaccDate:
             print(f"Vaccinating {curDate}")
-            state = m.vaccinate(*state)
+            extState = m.vaccinate(*state)
+            state = extState[0:6]
+            trajectories[-1] = updateVaxCost(trajectories[-1], extState[-1])
         if (curDate.month, curDate.day) == m.birthday:
             print(f"Aging population {curDate}")
             state = m.age(*state)
@@ -68,18 +75,23 @@ def plot(m, trajectories):
     df = pd.read_csv("econ_data/output_493days_cost.csv", header=None)
     # Drop label column
     df = df.iloc[:, 1:]
-    day = 1
-    while df.shape[0]:
+    for (*_, day, ambCost, nomedCost, vaxCost) in trajectories:
+        entry = ("Ambulatory", float(ambCost.sum()), int(day))
+        summd.append(entry)
+        entry = ("Vaccine", float(vaxCost.sum()), int(day))
+        summd.append(entry)
+        entry = ("No med care", float(nomedCost.sum()), int(day))
+        summd.append(entry)
+        # Regina's data to compare against
         rtitles = ["R Ambulatory", "R No med care",
                    "R Hospital", "R Vaccination"]
         ridcs = [0, 1, 2, 4]
         for (t, i) in zip(rtitles, ridcs):
-            entry = (t, float(df.iloc[i].sum()), day)
+            entry = (t, float(df.iloc[i].sum()), int(day))
             summd.append(entry)
         # Drop the rows we used
         df = df.iloc[5:]
         # Increase day count
-        day += 1
     df = pd.DataFrame(summd, columns=["Cost", "Euros", "Day"])
     sns.lineplot(
         data=df,
