@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from kce.SEIRS import Model
+from kce.SEIRS import Model, EpidemParams
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -146,7 +146,8 @@ def main():
         # vacc_date = (10, 10),
         end_date = date(year=2019, month=1, day=1)
     )
-    model = Model()
+    epidem_params = EpidemParams()
+    model = Model(epidem_params=epidem_params)
     traj = simulate(model, important_dates)
     plot(traj, reference_data=Path("./data/output_853days.csv"))
     # exit(0)
