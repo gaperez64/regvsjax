@@ -6,6 +6,43 @@ import numpy as np
 import pandas as pd
 
 
+class EpidemParams:
+    def get_daily_mortality(self):
+        # mortality rates
+        df = pd.read_csv("data/rateMor_eurostat_2021.csv")
+        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
+        dailyMort = jnp.asarray(df["Value"].values) / 365
+        return dailyMort
+
+    def get_contact_matrix(self):
+        # contact matrix
+        df = pd.read_csv("data/close+15_old.csv")
+        contact = jnp.asarray(df.values)
+        return contact
+
+    def get_initial_pop(self):
+        # initial population
+        df = pd.read_csv("data/refPop_eurostat_2021.csv")
+        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
+        initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
+        return initPop
+
+    def get_influenza_rate(self):
+        df = pd.read_csv("data/influenzaRate.csv")
+        influenzaRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
+        return influenzaRate
+
+    def get_hosp_rate(self):
+        df = pd.read_csv("data/hospRate.csv")
+        hospRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
+        return hospRate
+
+    def get_case_fatality_rate(self):
+        df = pd.read_csv("data/caseFatalityRate.csv")
+        caseFatalityRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
+        return caseFatalityRate
+
+
 class Model:
     def switchProgram(self, prog: str):
         """
@@ -18,29 +55,21 @@ class Model:
         """
         self.vaccRates = _vaccRates(prog)
 
-    def __init__(self):
-        # FIXME: Factor out hardcoded data manipulations
-        # contact matrix
-        df = pd.read_csv("data/close+15_old.csv")
-        self.contact = jnp.asarray(df.values)
-        # mortality rates
-        df = pd.read_csv("data/rateMor_eurostat_2021.csv")
-        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
-        self.dailyMort = jnp.asarray(df["Value"].values) / 365
-        # initial population
-        df = pd.read_csv("data/refPop_eurostat_2021.csv")
-        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
-        self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
+    def __init__(self, epidem_params: EpidemParams):
+        # TODO: factor out these values
+        self.startDate = date(year=2017, month=8, day=27)
+        self.peak = date(year=2016, month=9, day=21)
+
+        self.dailyMort = epidem_params.get_daily_mortality()
+        self.contact = epidem_params.get_contact_matrix()
+        self.initPop = epidem_params.get_initial_pop()
+        self.influenzaRate = epidem_params.get_influenza_rate()
+        self.hospRate = epidem_params.get_hosp_rate()
+        self.caseFatalityRate = epidem_params.get_case_fatality_rate()
+
         self.totPop = self.initPop.sum()
         print(f" ****** Initial total population {self.totPop}")
-        # Detailed infection rates
-        df = pd.read_csv("data/influenzaRate.csv")
-        self.influenzaRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
-        df = pd.read_csv("data/hospRate.csv")
-        self.hospRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
-        df = pd.read_csv("data/caseFatalityRate.csv")
-        self.caseFatalityRate = jnp.asarray(df["Rate"].values,
-                                            dtype=jnp.float64)
+
         # vaccination stats
         self.switchProgram(prog="baseline")
 
@@ -85,6 +114,7 @@ class Model:
             this will result in incorrect results as we assume self
             to be static
         """
+        # TODO: figure this one out.
         daterng = (self.startDate - self.peak).days + day
         z = 1 + self.delta * jnp.sin(2 * np.pi * (daterng / 365))
         beta = self.contact * self.q
