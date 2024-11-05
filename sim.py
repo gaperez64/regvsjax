@@ -20,6 +20,7 @@ class TimeOfYear(namedtuple("TimeOfYear", ["month", "day"])):
     """
         Small type to represent a "time of the year", i.e. a date that occurs every year.
     """
+    pass
 
 
 @dataclass
