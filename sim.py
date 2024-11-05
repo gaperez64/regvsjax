@@ -1,4 +1,9 @@
+from collections import namedtuple
+from dataclasses import dataclass
 from datetime import date, timedelta
+from pathlib import Path
+from typing import Iterable
+
 # import jax
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,42 +16,71 @@ from kce.SEIRS import Model
 # jax.config.update("jax_enable_x64", True)
 
 
-def simulate(m, endDate):
-    state = m.init()
+class TimeOfYear(namedtuple("TimeOfYear", ["month", "day"])):
+    """
+        Small type to represent a "time of the year", i.e. a date that occurs every year.
+    """
+
+
+@dataclass
+class ImportantDates:
+    """
+        Contains key dates in the course of the simulation.
+    """
+    start_date: date
+    peak: date
+    birthday: TimeOfYear
+    seed_date: TimeOfYear
+    vacc_date: TimeOfYear
+    end_date: date
+
+
+def simulate(model: Model, important_dates: ImportantDates):
+    state = model.init()
     trajectories = []
-    curDate = m.startDate
+    curDate = important_dates.start_date
     print(f"Start date {curDate}")
-    while curDate <= endDate:
+    while curDate <= important_dates.end_date:
         (_, _, _, _, _, day) = state
-        assert (m.startDate + timedelta(days=int(day))) == curDate
+        assert (important_dates.start_date + timedelta(days=int(day))) == curDate
 
-        if (curDate.month, curDate.day) == m.seedDate:
+        if (curDate.month, curDate.day) == important_dates.seed_date:
             print(f"Seeding infections {curDate}")
-            state = m.seedInfs(*state)
+            state = model.seedInfs(*state)
 
-        extState = m.step(*state)
+        extState = model.step(*state)
         state = extState[0:6]
 
         # TODO: call m.switchProgram("prog name") after an
         # appropriate number of days
         trajectories.append(state)
 
-        if (curDate.month, curDate.day) == m.vaccDate:
+        if (curDate.month, curDate.day) == important_dates.vacc_date:
             print(f"Vaccinating {curDate}")
-            state = m.vaccinate(*state)
-        if (curDate.month, curDate.day) == m.birthday:
+            state = model.vaccinate(*state)
+        if (curDate.month, curDate.day) == important_dates.birthday:
             print(f"Aging population {curDate}")
-            state = m.age(*state)
+            state = model.age(*state)
 
         curDate = curDate + timedelta(days=1)
     print(f"End date {curDate}")
     return trajectories
 
 
-def plot(m, trajectories):
+def plot(sim_traj: Iterable, reference_data: Path):
+    """
+        Plot the specified trajectories.
+
+        Parameters
+        ----------
+        sim_traj : Iterable
+            The trajectories produced by the simulation.
+        reference_data : Path
+            The reference data with which we wish to compare the simulation results.
+    """
     summd = []
-    df = pd.read_csv("~/Downloads/output_431days.csv", header=None)
-    for (S, E, Inf, R, V, day) in trajectories:
+    df = pd.read_csv(reference_data, header=None)
+    for (S, E, Inf, R, V, day) in sim_traj:
         # daterng = (m.startDate - m.peak).days + day
         # z = 1 + m.delta * np.sin(2 * np.pi * (daterng / 365))
         # print(f"z = {z}, daterng = {daterng}")
@@ -96,9 +130,27 @@ def plot(m, trajectories):
     plt.show()
 
 
+def main():
+    important_dates = ImportantDates(
+        # FIXME: This is a random nr. of days after the (fixed)
+        # FIXME: these values are arguably not part of the model
+        peak=date(year=2016, month=9, day=21),
+        start_date=date(year=2017, month=8, day=27),
+        # FIXME:the peak/reference day above should be randomized too
+        # birthday = (8, 31),  # End of August
+        birthday=TimeOfYear(month=8, day=31),  # End of August
+        seed_date=TimeOfYear(month=8, day=31),  # End of August
+        # seed_date = (8, 31),  # End of August
+        # FIXME: the seeding date above is also randomized
+        vacc_date=TimeOfYear(month=10, day=10),  # October 10
+        # vacc_date = (10, 10),
+        end_date = date(year=2019, month=1, day=1)
+    )
+    model = Model()
+    traj = simulate(model, important_dates)
+    plot(traj, reference_data=Path("./data/output_853days.csv"))
+    # exit(0)
+
+
 if __name__ == "__main__":
-    m = Model()
-    endDate = date(year=2019, month=1, day=1)
-    ts = simulate(m, endDate)
-    plot(m, ts)
-    exit(0)
+    main()

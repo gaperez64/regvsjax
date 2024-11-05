@@ -7,7 +7,15 @@ import pandas as pd
 
 
 class Model:
-    def switchProgram(self, prog="baseline"):
+    def switchProgram(self, prog: str):
+        """
+            Switch the vaccination rates to those of the program with the specified name.
+
+        Parameters
+        ----------
+        prog: str
+            The name of the program.
+        """
         self.vaccRates = _vaccRates(prog)
 
     def __init__(self):
@@ -34,7 +42,7 @@ class Model:
         self.caseFatalityRate = jnp.asarray(df["Rate"].values,
                                             dtype=jnp.float64)
         # vaccination stats
-        self.switchProgram()
+        self.switchProgram(prog="baseline")
 
         # FIXME: All values below should be loaded from a settings/JSON file
         # other parameters
@@ -49,16 +57,16 @@ class Model:
 
         # other constants
         self.noMedCare = 0.492
-        # FIXME: This is a random nr. of days after the (fixed)
-        # FIXME: these values are arguably not part of the model
-        # start of the season
-        self.peak = date(year=2016, month=9, day=21)
-        # FIXME: the peak/reference day above should be randomized too
-        self.birthday = (8, 31)   # End of August
-        self.startDate = date(year=2017, month=8, day=27)
-        self.seedDate = (8, 31)   # End of August
-        # FIXME: the seeding date above is also randomized
-        self.vaccDate = (10, 10)  # October 10
+        # # FIXME: This is a random nr. of days after the (fixed)
+        # # FIXME: these values are arguably not part of the model
+        # # start of the season
+        # self.peak = date(year=2016, month=9, day=21)
+        # # FIXME: the peak/reference day above should be randomized too
+        # self.birthday = (8, 31)   # End of August
+        # self.startDate = date(year=2017, month=8, day=27)
+        # self.seedDate = (8, 31)   # End of August
+        # # FIXME: the seeding date above is also randomized
+        # self.vaccDate = (10, 10)  # October 10
 
     def init(self):
         S = self.initPop
