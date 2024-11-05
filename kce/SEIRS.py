@@ -50,13 +50,12 @@ class Model:
         # other constants
         self.noMedCare = 0.492
         # FIXME: This is a random nr. of days after the (fixed)
-        # FIXME: these values are not part of the model and are not used within this class. They need to be moved
-        #   to simulator.
+        # FIXME: these values are arguably not part of the model
         # start of the season
         self.peak = date(year=2016, month=9, day=21)
         # FIXME: the peak/reference day above should be randomized too
         self.birthday = (8, 31)   # End of August
-        self.startDate = date(year=2016, month=9, day=1)
+        self.startDate = date(year=2017, month=8, day=27)
         self.seedDate = (8, 31)   # End of August
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 10)  # October 10
