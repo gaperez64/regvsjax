@@ -8,9 +8,18 @@ In both parts, JAX is used.
 
 ## Dependencies
 A `requirements.txt` file is provided with all required packages to run the
-code. We recommend the usage of a virtual environment together with `pip
+code. If you are not using a (Mac) MX processor, you need `reqs-linux-x86_64.txt` instead.
+
+We recommend the usage of a virtual environment together with `pip
 install -r requirements.txt` to ensure you have the right version of the
-packages.
+packages. For instance, run:
+```
+pip3 -m venv virtenv
+pip install -r reqs-linux-x86-64.txt
+source virtenv/bin/activate
+python sim.py
+```
+in the directory where you cloned the repo.
 
 ## Simulating
 The `sim.py` utility can be used to simulate (a determinist version of) the
