@@ -10,6 +10,11 @@ class Model:
     def switchProgram(self, prog="baseline"):
         self.vaccRates = _vaccRates(prog)
 
+    def loadFromCSV(self, fname):
+        df = pd.read_csv(fname, header=None)
+        assert df.shape[0] == 100
+        return jnp.asarray(df[0].values, dtype=jnp.float64)
+
     def __init__(self):
         # FIXME: Factor out hardcoded data manipulations
         # contact matrix
@@ -28,7 +33,8 @@ class Model:
         self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
         self.totPop = self.initPop.sum()
         print(f" ****** Initial total population {self.totPop}")
-        # Detailed infection rates
+
+        # Detail rates
         df = pd.read_csv("data/influenzaRate.csv", header=None)
         assert df.shape[0] == 100
         self.influenzaRate = jnp.asarray(df[0].values, dtype=jnp.float64)
@@ -40,21 +46,25 @@ class Model:
         self.caseFatalityRate = jnp.asarray(df["Rate"].values,
                                             dtype=jnp.float64)
         # Costs
-        df = pd.read_csv("econ_data/ambulatory_costs.csv", header=None)
-        assert df.shape[0] == 100
-        self.ambulatoryCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
-        df = pd.read_csv("econ_data/vaccine_cost.csv", header=None)
-        assert df.shape[0] == 100
-        self.vaccineCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
-        df = pd.read_csv("econ_data/no_medical_care_costs.csv", header=None)
-        assert df.shape[0] == 100
-        self.nomedCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
-        df = pd.read_csv("econ_data/hospitalization_costs.csv", header=None)
-        assert df.shape[0] == 100
-        self.hospCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
-        df = pd.read_csv("econ_data/hosp_ambulatory_costs.csv", header=None)
-        assert df.shape[0] == 100
-        self.hospAmbCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
+        self.ambulatoryCosts =\
+            self.loadFromCSV("econ_data/ambulatory_costs.csv")
+        self.vaccineCosts = self.loadFromCSV("econ_data/vaccine_cost.csv")
+        self.nomedCosts =\
+            self.loadFromCSV("econ_data/no_medical_care_costs.csv")
+        self.hospCosts =\
+            self.loadFromCSV("econ_data/hospitalization_costs.csv")
+        self.hospAmbCosts =\
+            self.loadFromCSV("econ_data/hosp_ambulatory_costs.csv")
+
+        # Qalys
+        self.ambulatoryQalys =\
+            self.loadFromCSV("econ_data/ambulatory_qaly_loss.csv")
+        self.nomedQalys =\
+            self.loadFromCSV("econ_data/no_medical_care_qaly_loss.csv")
+        self.hospQalys =\
+            self.loadFromCSV("econ_data/hospitalized_qaly_loss.csv")
+        self.discLifeEx =\
+            self.loadFromCSV("econ_data/discounted_life_expectancy.csv")
 
         # vaccination stats
         self.switchProgram()
@@ -139,8 +149,15 @@ class Model:
         hospCost = hospd * (self.hospCosts + self.hospAmbCosts)
         vaxCost = 0
 
+        # qalys
+        ambQaly = (confirmedInf - hospd) * self.ambulatoryQalys
+        noMedQaly = noMedCare * self.nomedQalys
+        hospQaly = hospd * self.hospQalys
+        lifeyrsLost = fatal * self.discLifeEx
+
         return (newS, newE, newInf, newR, newV, day + 1,
-                ambCost, noMedCost, hospCost, vaxCost)
+                ambCost, noMedCost, hospCost, vaxCost,
+                ambQaly, noMedQaly, hospQaly, lifeyrsLost)
 
     def seedInfs(self, S, E, Inf, R, V, day):
         newS = S.at[self.seedAges].add(-self.seedInf)

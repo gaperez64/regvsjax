@@ -10,8 +10,11 @@ from kce.SEIRS import Model
 
 
 def updateVaxCost(t, vaxCost):
-    (*rest, vc) = t
-    return (*rest, vaxCost + vc)
+    # The last five entries are
+    # vaxCosts, ambulatoryCosts,
+    # noMedCosts, hospCosts, lifeyrsLost
+    (*rest, vc, aq, nmq, hq, ll) = t
+    return (*rest, vaxCost + vc, aq, nmq, hq, ll)
 
 
 def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
@@ -89,7 +92,8 @@ def plot(m, trajectories):
     df = pd.read_csv("econ_data/output_493days_cost.csv", header=None)
     # Drop label column
     df = df.iloc[:, 1:]
-    for (*_, day, ambCost, nomedCost, hospCost, vaxCost) in trajectories:
+    for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
+         ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectories:
         entry = ("Ambulatory", float(ambCost.sum()), int(day))
         summd.append(entry)
         entry = ("No med care", float(nomedCost.sum()), int(day))
@@ -122,18 +126,26 @@ def plot(m, trajectories):
     df = pd.read_csv("econ_data/output_493days_qaly.csv", header=None)
     # Drop label column
     df = df.iloc[:, 1:]
-    day = 1
-    while df.shape[0]:
+    for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
+         ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectories:
+        entry = ("Ambulatory", float(ambQaly.sum()), int(day))
+        summd.append(entry)
+        entry = ("No med care", float(nomedQaly.sum()), int(day))
+        summd.append(entry)
+        entry = ("Hospital", float(hospQaly.sum()), int(day))
+        summd.append(entry)
+        entry = ("Life years", float(lifeyrsLost.sum()), int(day))
+        summd.append(entry)
+
+        # Regina's data to compare against
         rtitles = ["R Ambulatory", "R No med care",
                    "R Hospital", "R Life years"]
         ridcs = [0, 1, 2, 3]
         for (t, i) in zip(rtitles, ridcs):
-            entry = (t, float(df.iloc[i].sum()), day)
+            entry = (t, float(df.iloc[i].sum()), int(day))
             summd.append(entry)
         # Drop the rows we used
         df = df.iloc[5:]
-        # Increase day count
-        day += 1
     df = pd.DataFrame(summd, columns=["QALY", "QALY Units", "Day"])
     sns.lineplot(
         data=df,
