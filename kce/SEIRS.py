@@ -90,7 +90,7 @@ class Model:
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 10)  # October 10
         # start of the season
-        self.peak = date(year=self.startDate.year, month=9, day=21)
+        self.peak = date(self.startDate.year, month=9, day=21)
         # FIXME: the peak/reference day above should be randomized too
 
     def init(self):

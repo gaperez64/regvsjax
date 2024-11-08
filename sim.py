@@ -27,7 +27,7 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
         assert (m.startDate + timedelta(days=int(day))) == curDate
 
         if (curDate.month, curDate.day) == m.seedDate:
-            print(f"Seeding infections {curDate}")
+            print(f"Seeding infections {curDate} (day {day})")
             state = m.seedInfs(*state)
 
         extState = m.step(*state)
@@ -39,18 +39,18 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
             trajectories.append(extState)
 
         if (curDate.month, curDate.day) == m.vaccDate:
-            print(f"Vaccinating {curDate}")
+            print(f"Vaccinating {curDate} (day {day})")
             vaxdState = m.vaccinate(*state)
             state = vaxdState[0:6]
             if curDate >= dropBefore:
                 trajectories[-1] = updateVaxCost(trajectories[-1],
                                                  vaxdState[-1])
         if (curDate.month, curDate.day) == m.birthday:
-            print(f"Aging population {curDate}")
+            print(f"Aging population {curDate} (day {day})")
             state = m.age(*state)
 
         curDate = curDate + timedelta(days=1)
-    print(f"End date {curDate}")
+    print(f"End date {curDate} (day {day})")
     return trajectories
 
 
