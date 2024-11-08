@@ -29,9 +29,9 @@ class Model:
         self.totPop = self.initPop.sum()
         print(f" ****** Initial total population {self.totPop}")
         # Detailed infection rates
-        df = pd.read_csv("data/influenzaRate.csv")
+        df = pd.read_csv("data/influenzaRate.csv", header=None)
         assert df.shape[0] == 100
-        self.influenzaRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
+        self.influenzaRate = jnp.asarray(df[0].values, dtype=jnp.float64)
         df = pd.read_csv("data/hospRate.csv")
         assert df.shape[0] == 100
         self.hospRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
@@ -49,6 +49,12 @@ class Model:
         df = pd.read_csv("econ_data/no_medical_care_costs.csv", header=None)
         assert df.shape[0] == 100
         self.nomedCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
+        df = pd.read_csv("econ_data/hospitalization_costs.csv", header=None)
+        assert df.shape[0] == 100
+        self.hospCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
+        df = pd.read_csv("econ_data/hosp_ambulatory_costs.csv", header=None)
+        assert df.shape[0] == 100
+        self.hospAmbCosts = jnp.asarray(df[0].values, dtype=jnp.float64)
 
         # vaccination stats
         self.switchProgram()
@@ -69,7 +75,7 @@ class Model:
         # FIXME: This is a random nr. of days after the (fixed)
         # FIXME: these values are arguably not part of the model
         self.birthday = (8, 31)   # End of August
-        self.startDate = date(year=2017, month=8, day=27)
+        self.startDate = date(year=2016, month=9, day=1)
         self.seedDate = (8, 31)   # End of August
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 10)  # October 10
@@ -122,7 +128,7 @@ class Model:
         newV = V - V2S - V2D
 
         # breakdown of new infections
-        confirmedInf = newInf * self.influenzaRate
+        confirmedInf = E2I * self.influenzaRate
         noMedCare = (confirmedInf / self.noMedCare) - confirmedInf
         hospd = confirmedInf * self.hospRate
         fatal = confirmedInf * self.caseFatalityRate
@@ -130,10 +136,11 @@ class Model:
         # costs
         ambCost = (confirmedInf - hospd) * self.ambulatoryCosts
         noMedCost = noMedCare * self.nomedCosts
+        hospCost = hospd * (self.hospCosts + self.hospAmbCosts)
         vaxCost = 0
 
         return (newS, newE, newInf, newR, newV, day + 1,
-                ambCost, noMedCost, vaxCost)
+                ambCost, noMedCost, hospCost, vaxCost)
 
     def seedInfs(self, S, E, Inf, R, V, day):
         newS = S.at[self.seedAges].add(-self.seedInf)
@@ -148,6 +155,10 @@ class Model:
         return _age(S, E, Inf, R, V, day, self.totPop)
 
 
+# This is NOT something that's easy to make a method of the model class because
+# the vaccination rates and costs could change after switching vaccination
+# strategy! To optimize via JAX compilation, this version of the function is
+# externalized.
 @jax.jit
 def _vaccinate(S, E, Inf, R, V, day, vaccRates, vaccineCosts):
     # vaccination = element-wise product with vaccRates
@@ -164,8 +175,7 @@ def _vaccinate(S, E, Inf, R, V, day, vaccRates, vaccineCosts):
 
     # cost
     vaxCost = (newV - V) * vaccineCosts
-    return (newS, newE, newInf, newR, newV, day,
-            vaxCost)
+    return (newS, newE, newInf, newR, newV, day, vaxCost)
 
 
 @jax.jit
