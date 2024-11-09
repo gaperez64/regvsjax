@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import jax
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -6,7 +7,7 @@ import seaborn as sns
 from kce.SEIRS import Model
 
 
-# jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 
 def updateVaxCost(t, vaxCost):
@@ -45,6 +46,7 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
             if curDate >= dropBefore:
                 trajectories[-1] = updateVaxCost(trajectories[-1],
                                                  vaxdState[-1])
+
         if (curDate.month, curDate.day) == m.birthday:
             print(f"Aging population {curDate} (day {day})")
             state = m.age(*state)

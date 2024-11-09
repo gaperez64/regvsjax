@@ -86,7 +86,7 @@ class Model:
         # FIXME: these values are arguably not part of the model
         self.birthday = (8, 31)   # End of August
         self.startDate = date(year=2016, month=9, day=1)
-        self.seedDate = (8, 31)   # End of August
+        self.seedDate = (8, 30)   # End of August
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 10)  # October 10
         # start of the season
