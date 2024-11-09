@@ -86,7 +86,7 @@ class Model:
         # FIXME: these values are arguably not part of the model
         self.birthday = (8, 31)   # End of August
         self.startDate = date(year=2016, month=9, day=1)
-        self.seedDate = (8, 30)   # End of August
+        self.seedDate = (8, 31)   # End of August
         # FIXME: the seeding date above is also randomized
         self.vaccDate = (10, 10)  # October 10
         # start of the season
@@ -161,8 +161,8 @@ class Model:
 
     def seedInfs(self, S, E, Inf, R, V, day):
         newS = S.at[self.seedAges].add(-self.seedInf)
-        newE = E.at[self.seedAges].add(self.seedInf)
-        return newS, newE, Inf, R, V, day
+        newInf = Inf.at[self.seedAges].add(self.seedInf)
+        return newS, E, newInf, R, V, day
 
     def vaccinate(self, S, E, Inf, R, V, day):
         return _vaccinate(S, E, Inf, R, V, day, self.vaccRates,
