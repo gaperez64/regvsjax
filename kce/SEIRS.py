@@ -1,3 +1,4 @@
+import configparser
 from datetime import date
 from functools import partial
 import jax
@@ -15,19 +16,19 @@ class Model:
         assert df.shape[0] == 100
         return jnp.asarray(df[0].values, dtype=jnp.float64)
 
-    def __init__(self):
+    def __init__(self, startDate=None, peakDate=None):
         # FIXME: Factor out hardcoded data manipulations
         # contact matrix
-        df = pd.read_csv("data/close+15_old.csv")
+        df = pd.read_csv("data/contact_matrix.csv")
         assert df.shape[0] == 100
         self.contact = jnp.asarray(df.values)
         # mortality rates
-        df = pd.read_csv("data/rateMor_eurostat_2021.csv")
+        df = pd.read_csv("data/rateMort.csv")
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
         assert df.shape[0] == 100
         self.dailyMort = jnp.asarray(df["Value"].values) / 365
         # initial population
-        df = pd.read_csv("data/refPop_eurostat_2021.csv")
+        df = pd.read_csv("data/startPop.csv")
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
         assert df.shape[0] == 100
         self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
@@ -69,29 +70,41 @@ class Model:
         # vaccination stats
         self.switchProgram()
 
-        # FIXME: All values below should be loaded from a settings/JSON file
-        # other parameters
-        self.q = 1.8 / 30.35392  # FIXME: the numerator is a randomized R0
-        self.sigma = 1
-        self.gamma = 0.26316
-        self.omegaImm = 1 / (6 * 365)
-        self.omegaVacc = 1 / (6 * 365)
-        self.seedInf = 200
-        self.seedAges = jnp.asarray(range(5, 51))
-        self.delta = 0.43  # FIXME: this one is randomized too
+        # Load parameters and constants from configuration file
+        config = configparser.ConfigParser()
+        config.read("config.ini")
+        cpars = config["Cont.Pars"]
+        self.q = cpars.getfloat("q")
+        self.sigma = cpars.getfloat("sigma")
+        self.gamma = cpars.getfloat("gamma")
+        self.omegaImm = cpars.getfloat("omegaImm")
+        self.omegaVacc = cpars.getfloat("omegaVacc")
+        self.delta = cpars.getfloat("delta")
 
-        # other constants
-        self.noMedCare = 0.492
-        # FIXME: This is a random nr. of days after the (fixed)
-        # FIXME: these values are arguably not part of the model
-        self.birthday = (8, 31)   # End of August
-        self.startDate = date(year=2016, month=9, day=1)
-        self.seedDate = (8, 31)   # End of August
-        # FIXME: the seeding date above is also randomized
-        self.vaccDate = (10, 10)  # October 10
-        # start of the season
-        self.peak = date(self.startDate.year, month=9, day=21)
-        # FIXME: the peak/reference day above should be randomized too
+        dpars = config["Disc.Pars"]
+        self.seedInf = dpars.getint("seedInf")
+        self.seedAges = jnp.asarray(range(dpars.getint("seedAgeMin"),
+                                          dpars.getint("seedAgeMax")))
+        self.seedDate = (dpars.getint("seedMonth"),
+                         dpars.getint("seedDay"))
+        self.birthday = (dpars.getint("birthMonth"),
+                         dpars.getint("birthDay"))
+        self.vaccDate = (dpars.getint("vaccMonth"),
+                         dpars.getint("vaccDay"))
+
+        self.noMedCare = config.getfloat("Cost.Pars", "noMedCare")
+
+        # Defaults
+        if startDate is None:
+            self.startDate = date.fromisoformat(
+                config.get("Defaults", "startDate"))
+        else:
+            self.startDate = startDate
+        if peakDate is None:
+            self.peakDate = date.fromisoformat(
+                config.get("Defaults", "peakDate"))
+        else:
+            self.peakDate = peakDate
 
     def init(self):
         S = self.initPop
@@ -110,7 +123,7 @@ class Model:
             this will result in incorrect results as we assume self
             to be static
         """
-        daterng = (self.startDate - self.peak).days + day
+        daterng = (self.startDate - self.peakDate).days + day
         z = 1 + self.delta * jnp.sin(2 * np.pi * (daterng / 365))
         beta = self.contact * self.q
         force = z * jnp.dot(beta, Inf)
