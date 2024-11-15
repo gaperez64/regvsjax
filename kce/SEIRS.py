@@ -106,12 +106,23 @@ class Model:
         else:
             self.peakDate = peakDate
 
-    def init(self):
-        S = self.initPop
-        E = jnp.zeros(S.size)
-        Inf = jnp.zeros(S.size)
-        R = jnp.zeros(S.size)
-        V = jnp.zeros(S.size)
+    def init(self, savedState=None):
+        if savedState is None:
+            S = self.initPop
+            E = jnp.zeros(S.size)
+            Inf = jnp.zeros(S.size)
+            R = jnp.zeros(S.size)
+            V = jnp.zeros(S.size)
+        else:
+            df = pd.read_csv(savedState)
+            assert df.shape[0] == 100
+            S = jnp.asarray(df["S"].values, dtype=jnp.float64)
+            E = jnp.asarray(df["E"].values, dtype=jnp.float64)
+            Inf = jnp.asarray(df["I"].values, dtype=jnp.float64)
+            R = jnp.asarray(df["R"].values, dtype=jnp.float64)
+            V = jnp.asarray(df["V"].values, dtype=jnp.float64)
+            totPop = S.sum() + E.sum() + Inf.sum() + R.sum() + V.sum()
+            assert totPop == self.totPop
         return S, E, Inf, R, V, 0
 
     @partial(jax.jit, static_argnums=0)
