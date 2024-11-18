@@ -57,25 +57,22 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
 
 
 def compareAndAgg(mine, regs, label, day):
-    for i in range(100):
-        if abs(mine[i] - regs[i]) >= 100:
-            print(f"day {day} {label}[{i}] {mine[i]} vs reg's {regs[i]}")
-            exit(1)
-    e1 = (label, float(mine.sum()), int(day))
-    e2 = ("R " + label, float(regs.sum()), int(day))
-    return (e1, e2)
+    regs = jax.numpy.asarray(regs)
+    diff = jax.numpy.max(jax.numpy.abs(mine - regs))
+    return ("Diff " + label, float(diff), int(day))
 
 
 def plot(m, trajectories):
     # We first plot dynamics
     summd = []
-    df = pd.read_csv("data/output_493days.csv", header=None)
+    df = pd.read_csv("data/output_4yrs.csv", header=None)
+    print("Comparing compartment values with Reg's data")
     for (S, E, Inf, R, V, day, *_) in trajectories:
-        summd.extend(compareAndAgg(S, df.iloc[0], "Susceptible", day))
-        summd.extend(compareAndAgg(E, df.iloc[1], "Exposed", day))
-        summd.extend(compareAndAgg(Inf, df.iloc[2], "Infectious", day))
-        summd.extend(compareAndAgg(R, df.iloc[3], "Recovered", day))
-        summd.extend(compareAndAgg(V, df.iloc[4], "Vaccinated", day))
+        summd.append(compareAndAgg(S, df.iloc[0], "Susceptible", day))
+        summd.append(compareAndAgg(E, df.iloc[1], "Exposed", day))
+        summd.append(compareAndAgg(Inf, df.iloc[2], "Infectious", day))
+        summd.append(compareAndAgg(R, df.iloc[3], "Recovered", day))
+        summd.append(compareAndAgg(V, df.iloc[4], "Vaccinated", day))
         df = df.iloc[5:]
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
     sns.lineplot(
@@ -158,7 +155,7 @@ def plot(m, trajectories):
 
 if __name__ == "__main__":
     m = Model()
-    endDate = date(year=2019, month=1, day=1)
+    endDate = date(year=2022, month=1, day=1)
     ts = simulate(m, endDate, date(year=2017, month=8, day=27))
     plot(m, ts)
     exit(0)
