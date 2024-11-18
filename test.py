@@ -1,5 +1,5 @@
-import configparser
 from datetime import date, timedelta
+import jax
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -18,7 +18,7 @@ def updateVaxCost(t, vaxCost):
     return (*rest, vaxCost + vc, aq, nmq, hq, ll)
 
 
-def simulate(m, endDate):
+def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
     state = m.init()
     trajectories = []
     curDate = m.startDate
@@ -34,13 +34,18 @@ def simulate(m, endDate):
         extState = m.step(*state)
         state = extState[0:6]
 
-        trajectories.append(extState)
+        # TODO: call m.switchProgram("prog name") after an
+        # appropriate number of days
+        if curDate >= dropBefore:
+            trajectories.append(extState)
 
         if (curDate.month, curDate.day) == m.vaccDate:
             print(f"Vaccinating {curDate} (day {day})")
             vaxdState = m.vaccinate(*state)
             state = vaxdState[0:6]
-            trajectories[-1] = updateVaxCost(trajectories[-1], vaxdState[-1])
+            if curDate >= dropBefore:
+                trajectories[-1] = updateVaxCost(trajectories[-1],
+                                                 vaxdState[-1])
 
         if (curDate.month, curDate.day) == m.birthday:
             print(f"Aging population {curDate} (day {day})")
@@ -54,6 +59,7 @@ def simulate(m, endDate):
 def plot(m, trajectories):
     # We first plot dynamics
     summd = []
+    df = pd.read_csv("data/output_493days.csv", header=None)
     for (S, E, Inf, R, V, day, *_) in trajectories:
         entry = ("Susceptible", float(S.sum()), int(day))
         summd.append(entry)
@@ -65,6 +71,16 @@ def plot(m, trajectories):
         summd.append(entry)
         entry = ("Vaccinated", float(V.sum()), int(day))
         summd.append(entry)
+        # Regina's data to compare against
+        rtitles = ["R Susceptible", "R Exposed",
+                   "R Infectious", "R Recovered",
+                   "R Vaccinated"]
+        ridcs = [0, 1, 2, 3, 4]
+        for (t, i) in zip(rtitles, ridcs):
+            entry = (t, float(df.iloc[i].sum()), int(day))
+            summd.append(entry)
+        # Drop the rows we used
+        df = df.iloc[5:]
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
     sns.lineplot(
         data=df,
@@ -75,6 +91,9 @@ def plot(m, trajectories):
 
     # Now we plot costs
     summd = []
+    df = pd.read_csv("econ_data/output_493days_cost.csv", header=None)
+    # Drop label column
+    df = df.iloc[:, 1:]
     for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
          ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectories:
         entry = ("Ambulatory", float(ambCost.sum()), int(day))
@@ -85,6 +104,16 @@ def plot(m, trajectories):
         summd.append(entry)
         entry = ("Vaccine", float(vaxCost.sum()), int(day))
         summd.append(entry)
+
+        # Regina's data to compare against
+        rtitles = ["R Ambulatory", "R No med care",
+                   "R Hospital", "R Vaccination"]
+        ridcs = [0, 1, 2, 4]
+        for (t, i) in zip(rtitles, ridcs):
+            entry = (t, float(df.iloc[i].sum()), int(day))
+            summd.append(entry)
+        # Drop the rows we used
+        df = df.iloc[5:]
     df = pd.DataFrame(summd, columns=["Cost", "Euros", "Day"])
     sns.lineplot(
         data=df,
@@ -96,6 +125,9 @@ def plot(m, trajectories):
 
     # Now we plot qaly
     summd = []
+    df = pd.read_csv("econ_data/output_493days_qaly.csv", header=None)
+    # Drop label column
+    df = df.iloc[:, 1:]
     for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
          ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectories:
         entry = ("Ambulatory", float(ambQaly.sum()), int(day))
@@ -106,6 +138,16 @@ def plot(m, trajectories):
         summd.append(entry)
         entry = ("Life years", float(lifeyrsLost.sum()), int(day))
         summd.append(entry)
+
+        # Regina's data to compare against
+        rtitles = ["R Ambulatory", "R No med care",
+                   "R Hospital", "R Life years"]
+        ridcs = [0, 1, 2, 3]
+        for (t, i) in zip(rtitles, ridcs):
+            entry = (t, float(df.iloc[i].sum()), int(day))
+            summd.append(entry)
+        # Drop the rows we used
+        df = df.iloc[5:]
     df = pd.DataFrame(summd, columns=["QALY", "QALY Units", "Day"])
     sns.lineplot(
         data=df,
@@ -120,10 +162,7 @@ def plot(m, trajectories):
 
 if __name__ == "__main__":
     m = Model()
-    config = configparser.ConfigParser()
-    config.read("config.ini")
-    endDate = date.fromisoformat(
-        config.get("Defaults", "lastBurntDate"))
-    ts = simulate(m, endDate)
+    endDate = date(year=2019, month=1, day=1)
+    ts = simulate(m, endDate, date(year=2017, month=8, day=27))
     plot(m, ts)
     exit(0)
