@@ -56,30 +56,26 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
     return trajectories
 
 
+def compareAndAgg(mine, regs, label, day):
+    for i in range(100):
+        if abs(mine[i] - regs[i]) >= 100:
+            print(f"day {day} {label}[{i}] {mine[i]} vs reg's {regs[i]}")
+            exit(1)
+    e1 = (label, float(mine.sum()), int(day))
+    e2 = ("R " + label, float(regs.sum()), int(day))
+    return (e1, e2)
+
+
 def plot(m, trajectories):
     # We first plot dynamics
     summd = []
     df = pd.read_csv("data/output_493days.csv", header=None)
     for (S, E, Inf, R, V, day, *_) in trajectories:
-        entry = ("Susceptible", float(S.sum()), int(day))
-        summd.append(entry)
-        entry = ("Exposed", float(E.sum()), int(day))
-        summd.append(entry)
-        entry = ("Infectious", float(Inf.sum()), int(day))
-        summd.append(entry)
-        entry = ("Recovered", float(R.sum()), int(day))
-        summd.append(entry)
-        entry = ("Vaccinated", float(V.sum()), int(day))
-        summd.append(entry)
-        # Regina's data to compare against
-        rtitles = ["R Susceptible", "R Exposed",
-                   "R Infectious", "R Recovered",
-                   "R Vaccinated"]
-        ridcs = [0, 1, 2, 3, 4]
-        for (t, i) in zip(rtitles, ridcs):
-            entry = (t, float(df.iloc[i].sum()), int(day))
-            summd.append(entry)
-        # Drop the rows we used
+        summd.extend(compareAndAgg(S, df.iloc[0], "Susceptible", day))
+        summd.extend(compareAndAgg(E, df.iloc[1], "Exposed", day))
+        summd.extend(compareAndAgg(Inf, df.iloc[2], "Infectious", day))
+        summd.extend(compareAndAgg(R, df.iloc[3], "Recovered", day))
+        summd.extend(compareAndAgg(V, df.iloc[4], "Vaccinated", day))
         df = df.iloc[5:]
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
     sns.lineplot(
