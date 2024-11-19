@@ -16,7 +16,7 @@ class Model:
         assert df.shape[0] == 100
         return jnp.asarray(df[0].values, dtype=jnp.float64)
 
-    def __init__(self, startDate=None, peakDate=None):
+    def __init__(self, startDate=None):
         # FIXME: Factor out hardcoded data manipulations
         # contact matrix
         df = pd.read_csv("data/contact_matrix.csv")
@@ -91,6 +91,8 @@ class Model:
                          dpars.getint("birthDay"))
         self.vaccDate = (dpars.getint("vaccMonth"),
                          dpars.getint("vaccDay"))
+        self.peakDate = (dpars.getint("peakMonth"),
+                         dpars.getint("peakDay"))
 
         self.noMedCare = config.getfloat("Cost.Pars", "noMedCare")
 
@@ -100,19 +102,25 @@ class Model:
                 config.get("Defaults", "startDate"))
         else:
             self.startDate = startDate
-        if peakDate is None:
-            self.peakDate = date.fromisoformat(
-                config.get("Defaults", "peakDate"))
-        else:
-            self.peakDate = peakDate
 
-    def init(self, savedState=None):
+    def init(self, savedState=None, d=0):
         if savedState is None:
             S = self.initPop
             E = jnp.zeros(S.size)
             Inf = jnp.zeros(S.size)
             R = jnp.zeros(S.size)
             V = jnp.zeros(S.size)
+            # Special computation for day
+            onsame = date(year=self.startDate.year,
+                          month=self.peakDate[0],
+                          day=self.peakDate[1])
+            d = (self.startDate - onsame).days
+            if d < 0:
+                onprev = date(year=self.startDate.year - 1,
+                              month=self.peakDate[0],
+                              day=self.peakDate[1])
+                d = (self.startDate - onprev).days
+
         else:
             df = pd.read_csv(savedState)
             assert df.shape[0] == 100
@@ -123,19 +131,18 @@ class Model:
             V = jnp.asarray(df["V"].values, dtype=jnp.float64)
             totPop = S.sum() + E.sum() + Inf.sum() + R.sum() + V.sum()
             assert totPop == self.totPop
-        return S, E, Inf, R, V, 0
+        return S, E, Inf, R, V, d
 
     @partial(jax.jit, static_argnums=0)
     def step(self, S, E, Inf, R, V, day):
         """
-            We simulate one step of (forward) Newton integration
-            with h = 1 (day). For efficiency, the method is JIT compiled
-            NOTE: if any object attributes change after the first call,
-            this will result in incorrect results as we assume self
-            to be static
+        We simulate one step of (forward) Newton integration
+        with h = 1 (day). For efficiency, the method is JIT compiled
+        NOTE: if any object attributes change after the first call,
+        this will result in incorrect results as we assume self
+        to be static
         """
-        daterng = (self.startDate - self.peakDate).days + day
-        z = 1 + self.delta * jnp.sin(2 * np.pi * (daterng / 365))
+        z = 1 + self.delta * jnp.sin(2 * np.pi * (day / 365))
         beta = self.contact * self.q
         force = z * jnp.dot(beta, Inf)
 

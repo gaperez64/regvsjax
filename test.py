@@ -7,7 +7,7 @@ import seaborn as sns
 from kce.SEIRS import Model
 
 
-# jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 
 def updateVaxCost(t, vaxCost):
@@ -20,18 +20,24 @@ def updateVaxCost(t, vaxCost):
 
 def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
     state = m.init()
+    (_, _, _, _, _, day) = state
     trajectories = []
     curDate = m.startDate
-    print(f"Start date {curDate}")
+    idx = 1
+    print(f"Start date {curDate} (day {idx}:{day})")
     while curDate <= endDate:
-        (_, _, _, _, _, day) = state
-        assert (m.startDate + timedelta(days=int(day))) == curDate
+        (S, E, Inf, R, V, day) = state
+        # assert (m.startDate + timedelta(days=int(day))) == curDate
 
         if (curDate.month, curDate.day) == m.seedDate:
-            print(f"Seeding infections {curDate} (day {day})")
+            print(f"Seeding infections {curDate} (day {idx}:{day})")
             state = m.seedInfs(*state)
 
-        extState = m.step(*state)
+        if (curDate.month, curDate.day) == m.peakDate:
+            print(f"Reseting flu cycle {curDate} (day {idx}:{day})")
+            day = 0
+
+        extState = m.step(S, E, Inf, R, V, day)
         state = extState[0:6]
 
         # TODO: call m.switchProgram("prog name") after an
@@ -40,7 +46,7 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
             trajectories.append(extState)
 
         if (curDate.month, curDate.day) == m.vaccDate:
-            print(f"Vaccinating {curDate} (day {day})")
+            print(f"Vaccinating {curDate} (day {idx}:{day})")
             vaxdState = m.vaccinate(*state)
             state = vaxdState[0:6]
             if curDate >= dropBefore:
@@ -48,11 +54,12 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
                                                  vaxdState[-1])
 
         if (curDate.month, curDate.day) == m.birthday:
-            print(f"Aging population {curDate} (day {day})")
+            print(f"Aging population {curDate} (day {idx}:{day})")
             state = m.age(*state)
 
         curDate = curDate + timedelta(days=1)
-    print(f"End date {curDate} (day {day})")
+        idx += 1
+    print(f"End date {curDate} (day {idx}:{day})")
     return trajectories
 
 
@@ -67,13 +74,15 @@ def plot(m, trajectories):
     summd = []
     df = pd.read_csv("data/output_4yrs.csv", header=None)
     print("Comparing compartment values with Reg's data")
-    for (S, E, Inf, R, V, day, *_) in trajectories:
-        summd.append(compareAndAgg(S, df.iloc[0], "Susceptible", day))
-        summd.append(compareAndAgg(E, df.iloc[1], "Exposed", day))
-        summd.append(compareAndAgg(Inf, df.iloc[2], "Infectious", day))
-        summd.append(compareAndAgg(R, df.iloc[3], "Recovered", day))
-        summd.append(compareAndAgg(V, df.iloc[4], "Vaccinated", day))
+    d = 0
+    for (S, E, Inf, R, V, *_) in trajectories:
+        summd.append(compareAndAgg(S, df.iloc[0], "Susceptible", d))
+        summd.append(compareAndAgg(E, df.iloc[1], "Exposed", d))
+        summd.append(compareAndAgg(Inf, df.iloc[2], "Infectious", d))
+        summd.append(compareAndAgg(R, df.iloc[3], "Recovered", d))
+        summd.append(compareAndAgg(V, df.iloc[4], "Vaccinated", d))
         df = df.iloc[5:]
+        d += 1
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
     sns.lineplot(
         data=df,
@@ -155,7 +164,7 @@ def plot(m, trajectories):
 
 if __name__ == "__main__":
     m = Model()
-    endDate = date(year=2022, month=1, day=1)
+    endDate = date(year=2021, month=12, day=31)
     ts = simulate(m, endDate, date(year=2017, month=8, day=27))
     plot(m, ts)
     exit(0)
