@@ -7,7 +7,7 @@ import seaborn as sns
 from kce.SEIRS import Model
 
 
-jax.config.update("jax_enable_x64", True)
+# jax.config.update("jax_enable_x64", True)
 
 
 def updateVaxCost(t, vaxCost):
@@ -20,24 +20,23 @@ def updateVaxCost(t, vaxCost):
 
 def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
     state = m.init()
-    (_, _, _, _, _, day) = state
     trajectories = []
     curDate = m.startDate
     idx = 1
-    print(f"Start date {curDate} (day {idx}:{day})")
+    print(f"Start date {curDate}")
     while curDate <= endDate:
         (S, E, Inf, R, V, day) = state
-        # assert (m.startDate + timedelta(days=int(day))) == curDate
+
+        if (curDate.month, curDate.day) == m.peakDate:
+            print(f"Reseting flu cycle {curDate} (day {idx}:{day})")
+            day = 0
+            state = (S, E, Inf, R, V, day)
 
         if (curDate.month, curDate.day) == m.seedDate:
             print(f"Seeding infections {curDate} (day {idx}:{day})")
             state = m.seedInfs(*state)
 
-        if (curDate.month, curDate.day) == m.peakDate:
-            print(f"Reseting flu cycle {curDate} (day {idx}:{day})")
-            day = 0
-
-        extState = m.step(S, E, Inf, R, V, day)
+        extState = m.step(*state)
         state = extState[0:6]
 
         # TODO: call m.switchProgram("prog name") after an
