@@ -14,7 +14,7 @@ We recommend the usage of a virtual environment together with `pip
 install -r requirements.txt` to ensure you have the right version of the
 packages. For instance, run:
 ```
-pip3 -m venv virtenv
+python3 -m venv virtenv
 pip install -r reqs-linux-x86-64.txt
 source virtenv/bin/activate
 python sim.py
