@@ -62,24 +62,50 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
     return trajectories
 
 
-def compareAndAgg(mine, regs, label, day):
+def compare(mine, regs, label, day):
     regs = jax.numpy.asarray(regs)
     diff = jax.numpy.max(jax.numpy.abs(mine - regs))
     return ("Diff " + label, float(diff), int(day))
 
 
+def aggregate(mine, regs, label, day):
+    return [("R " + label, float(regs.sum()), int(day)),
+            (label, float(mine.sum()), int(day))]
+
+
 def plot(m, trajectories):
-    # We first plot dynamics
+    # We first plot differences
     summd = []
     df = pd.read_csv("data/output_4yrs.csv", header=None)
     print("Comparing compartment values with Reg's data")
-    d = 0
+    d = 1
     for (S, E, Inf, R, V, *_) in trajectories:
-        summd.append(compareAndAgg(S, df.iloc[0], "Susceptible", d))
-        summd.append(compareAndAgg(E, df.iloc[1], "Exposed", d))
-        summd.append(compareAndAgg(Inf, df.iloc[2], "Infectious", d))
-        summd.append(compareAndAgg(R, df.iloc[3], "Recovered", d))
-        summd.append(compareAndAgg(V, df.iloc[4], "Vaccinated", d))
+        summd.append(compare(S, df.iloc[0], "Susceptible", d))
+        summd.append(compare(E, df.iloc[1], "Exposed", d))
+        summd.append(compare(Inf, df.iloc[2], "Infectious", d))
+        summd.append(compare(R, df.iloc[3], "Recovered", d))
+        summd.append(compare(V, df.iloc[4], "Vaccinated", d))
+        df = df.iloc[5:]
+        d += 1
+    df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
+    sns.lineplot(
+        data=df,
+        x="Day", y="Population",
+        hue="Compartment", style="Compartment"
+    )
+    plt.show()
+
+    # We then plot dynamics
+    summd = []
+    df = pd.read_csv("data/output_4yrs.csv", header=None)
+    print("Comparing compartment values with Reg's data")
+    d = 1
+    for (S, E, Inf, R, V, *_) in trajectories:
+        summd.extend(aggregate(S, df.iloc[0], "Susceptible", d))
+        summd.extend(aggregate(E, df.iloc[1], "Exposed", d))
+        summd.extend(aggregate(Inf, df.iloc[2], "Infectious", d))
+        summd.extend(aggregate(R, df.iloc[3], "Recovered", d))
+        summd.extend(aggregate(V, df.iloc[4], "Vaccinated", d))
         df = df.iloc[5:]
         d += 1
     df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
