@@ -7,7 +7,7 @@ import seaborn as sns
 from kce.SEIRS import Model
 
 
-jax.config.update("jax_enable_x64", True)
+# jax.config.update("jax_enable_x64", True)
 
 
 def updateVaxCost(t, vaxCost):
@@ -19,7 +19,7 @@ def updateVaxCost(t, vaxCost):
 
 
 def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
-    state = m.init()
+    state = m.startState()
     trajectories = []
     curDate = m.startDate
     idx = 1
@@ -94,96 +94,6 @@ def plot(m, trajectories):
         hue="Compartment", style="Compartment"
     )
     plt.show()
-
-    # We then plot dynamics
-    summd = []
-    df = pd.read_csv("data/output_4yrs.csv", header=None)
-    print("Comparing compartment values with Reg's data")
-    d = 1
-    for (S, E, Inf, R, V, *_) in trajectories:
-        summd.extend(aggregate(S, df.iloc[0], "Susceptible", d))
-        summd.extend(aggregate(E, df.iloc[1], "Exposed", d))
-        summd.extend(aggregate(Inf, df.iloc[2], "Infectious", d))
-        summd.extend(aggregate(R, df.iloc[3], "Recovered", d))
-        summd.extend(aggregate(V, df.iloc[4], "Vaccinated", d))
-        df = df.iloc[5:]
-        d += 1
-    df = pd.DataFrame(summd, columns=["Compartment", "Population", "Day"])
-    sns.lineplot(
-        data=df,
-        x="Day", y="Population",
-        hue="Compartment", style="Compartment"
-    )
-    plt.show()
-
-    # Now we plot costs
-    summd = []
-    df = pd.read_csv("econ_data/output_493days_cost.csv", header=None)
-    # Drop label column
-    df = df.iloc[:, 1:]
-    for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
-         ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectories:
-        entry = ("Ambulatory", float(ambCost.sum()), int(day))
-        summd.append(entry)
-        entry = ("No med care", float(nomedCost.sum()), int(day))
-        summd.append(entry)
-        entry = ("Hospital", float(hospCost.sum()), int(day))
-        summd.append(entry)
-        entry = ("Vaccine", float(vaxCost.sum()), int(day))
-        summd.append(entry)
-
-        # Regina's data to compare against
-        rtitles = ["R Ambulatory", "R No med care",
-                   "R Hospital", "R Vaccination"]
-        ridcs = [0, 1, 2, 4]
-        for (t, i) in zip(rtitles, ridcs):
-            entry = (t, float(df.iloc[i].sum()), int(day))
-            summd.append(entry)
-        # Drop the rows we used
-        df = df.iloc[5:]
-    df = pd.DataFrame(summd, columns=["Cost", "Euros", "Day"])
-    sns.lineplot(
-        data=df,
-        x="Day", y="Euros",
-        hue="Cost", style="Cost",
-    )
-    plt.yscale("log")
-    plt.show()
-
-    # Now we plot qaly
-    summd = []
-    df = pd.read_csv("econ_data/output_493days_qaly.csv", header=None)
-    # Drop label column
-    df = df.iloc[:, 1:]
-    for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
-         ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectories:
-        entry = ("Ambulatory", float(ambQaly.sum()), int(day))
-        summd.append(entry)
-        entry = ("No med care", float(nomedQaly.sum()), int(day))
-        summd.append(entry)
-        entry = ("Hospital", float(hospQaly.sum()), int(day))
-        summd.append(entry)
-        entry = ("Life years", float(lifeyrsLost.sum()), int(day))
-        summd.append(entry)
-
-        # Regina's data to compare against
-        rtitles = ["R Ambulatory", "R No med care",
-                   "R Hospital", "R Life years"]
-        ridcs = [0, 1, 2, 3]
-        for (t, i) in zip(rtitles, ridcs):
-            entry = (t, float(df.iloc[i].sum()), int(day))
-            summd.append(entry)
-        # Drop the rows we used
-        df = df.iloc[5:]
-    df = pd.DataFrame(summd, columns=["QALY", "QALY Units", "Day"])
-    sns.lineplot(
-        data=df,
-        x="Day", y="QALY Units",
-        hue="QALY", style="QALY",
-    )
-    plt.yscale("log")
-    plt.show()
-
     return
 
 

@@ -21,9 +21,24 @@ python sim.py
 ```
 in the directory where you cloned the repo.
 
+Several configuration values can be set in the `config.ini` file. These change
+the behavior of the scripts described below.
+
+## Testing
+The `test.py` utility runs a comparison of the simulated dynamics against data
+obtained from R. Manansala's model. It plots the differences as a final step.
+We consider a discrepancy of ~20 individuals per compartment to be reasonable.
+Anything larger than this should be considered a bug or a mismatch in
+dates/rates/data in general.
+
 ## Simulating
-The `sim.py` utility can be used to simulate (a determinist version of) the
-baseline situation.
+The `sim.py` utility can be used to simulate (a deterministic version of) the
+baseline situation. 
+
+### Caching (the burn-in) data
+You can use the `burn.py` script to simulate the model from start date to
+burn-in date and to save the distribution of the population in
+`data/afterBurnIn.csv`.
 
 ## Lower and upper bounds of vaccination rates
 The `rate_min_max.py` script goes through all vaccination programs in the

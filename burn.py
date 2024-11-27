@@ -6,7 +6,7 @@ import pandas as pd
 from kce.SEIRS import Model
 
 
-jax.config.update("jax_enable_x64", True)
+# jax.config.update("jax_enable_x64", True)
 
 
 def updateVaxCost(t, vaxCost):
@@ -18,7 +18,7 @@ def updateVaxCost(t, vaxCost):
 
 
 def simulate(m, endDate):
-    state = m.init()
+    state = m.startState()
     curDate = m.startDate
     idx = 1
     print(f"Start date {curDate}")
@@ -67,8 +67,7 @@ if __name__ == "__main__":
     m = Model()
     config = configparser.ConfigParser()
     config.read("config.ini")
-    endDate = date.fromisoformat(
-        config.get("Defaults", "lastBurntDate"))
+    endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
     last = simulate(m, endDate)
     dumpCSV(*last)
     exit(0)

@@ -103,24 +103,14 @@ class Model:
         else:
             self.startDate = startDate
 
-    def init(self, savedState=None, d=0):
+    def startState(self, savedState=None, savedDate=None):
         if savedState is None:
+            startDate = self.startDate
             S = self.initPop
             E = jnp.zeros(S.size)
             Inf = jnp.zeros(S.size)
             R = jnp.zeros(S.size)
             V = jnp.zeros(S.size)
-            # Special computation for day
-            onsame = date(year=self.startDate.year,
-                          month=self.peakDate[0],
-                          day=self.peakDate[1])
-            d = (self.startDate - onsame).days
-            if d < 0:
-                onprev = date(year=self.startDate.year - 1,
-                              month=self.peakDate[0],
-                              day=self.peakDate[1])
-                d = (self.startDate - onprev).days
-
         else:
             df = pd.read_csv(savedState)
             assert df.shape[0] == 100
@@ -131,6 +121,18 @@ class Model:
             V = jnp.asarray(df["V"].values, dtype=jnp.float64)
             totPop = S.sum() + E.sum() + Inf.sum() + R.sum() + V.sum()
             assert totPop == self.totPop
+            startDate = savedDate
+
+        # Special computation for day
+        onsame = date(year=startDate.year,
+                      month=self.peakDate[0],
+                      day=self.peakDate[1])
+        d = (startDate - onsame).days
+        if d < 0:
+            onprev = date(year=startDate.year - 1,
+                          month=self.peakDate[0],
+                          day=self.peakDate[1])
+            d = (startDate - onprev).days
         return S, E, Inf, R, V, d
 
     @partial(jax.jit, static_argnums=0)
