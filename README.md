@@ -33,7 +33,9 @@ dates/rates/data in general.
 
 ## Simulating
 The `sim.py` utility can be used to simulate (a deterministic version of) the
-baseline situation. 
+baseline situation. The script requires an (ISO-format) date that will be used
+as end-date for the simulation. It can also take a filename and date for
+cached data.
 
 ### Caching (the burn-in) data
 You can use the `burn.py` script to simulate the model from start date to
