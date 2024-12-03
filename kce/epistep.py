@@ -10,7 +10,7 @@ from functools import partial
 # externalized.
 @partial(jax.jit, static_argnums=0)
 def vaccinate(config, S, E, Inf, R, V, day):
-    vaccRates, vaccineCosts = (config.vaccRates, config.vaccineCosts)
+    vaccRates, vaccineCosts = config.vaccRates, config.vaccineCosts
     # vaccination = element-wise product with vaccRates
     S2V = S * vaccRates
     E2V = E * vaccRates
