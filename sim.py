@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 import sys
 
-from kce.SEIRS import Model
+from kce.epidata import EpiData
 import kce.epistep as epistep
 
 
@@ -135,7 +135,7 @@ def plot(m, trajectories):
 
 
 if __name__ == "__main__":
-    m = Model()
+    m = EpiData()
     config = configparser.ConfigParser()
     config.read("config.ini")
     endDate = date.fromisoformat(sys.argv[1])

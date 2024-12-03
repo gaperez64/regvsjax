@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import jax
 import pandas as pd
 
-from kce.SEIRS import Model
+from kce.epidata import EpiData
 import kce.epistep as epistep
 
 
@@ -65,7 +65,7 @@ def dumpCSV(S, E, Inf, R, V, day):
 
 
 if __name__ == "__main__":
-    m = Model()
+    m = EpiData()
     config = configparser.ConfigParser()
     config.read("config.ini")
     endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))

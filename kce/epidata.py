@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import pandas as pd
 
 
-class Model:
+class EpiData:
     def switchProgram(self, prog="baseline"):
         df = pd.read_csv(f"vaccination_rates/program_{prog}.csv")
         df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
