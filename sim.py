@@ -6,6 +6,7 @@ import seaborn as sns
 import sys
 
 from kce.SEIRS import Model
+import kce.epistep as epistep
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -35,9 +36,9 @@ def simulate(m, endDate, cacheFile=None, cacheDate=None):
 
         if (curDate.month, curDate.day) == m.seedDate:
             print(f"Seeding infections {curDate} (day {idx}:{day})")
-            state = m.seedInfs(*state)
+            state = epistep.seedInfs(m, *state)
 
-        extState = m.step(*state)
+        extState = epistep.step(m, *state)
         state = extState[0:6]
 
         # TODO: call m.switchProgram("prog name") after an
@@ -46,13 +47,13 @@ def simulate(m, endDate, cacheFile=None, cacheDate=None):
 
         if (curDate.month, curDate.day) == m.vaccDate:
             print(f"Vaccinating {curDate} (day {idx}:{day})")
-            vaxdState = m.vaccinate(*state)
+            vaxdState = epistep.vaccinate(m, *state)
             state = vaxdState[0:6]
             trajectories[-1] = updateVaxCost(trajectories[-1], vaxdState[-1])
 
         if (curDate.month, curDate.day) == m.birthday:
             print(f"Aging population {curDate} (day {idx}:{day})")
-            state = m.age(*state)
+            state = epistep.age(m, *state)
 
         curDate = curDate + timedelta(days=1)
         idx += 1

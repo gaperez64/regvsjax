@@ -8,8 +8,9 @@ from functools import partial
 # the vaccination rates and costs could change after switching vaccination
 # strategy! To optimize via JAX compilation, this version of the function is
 # externalized.
-@jax.jit
-def vaccinate(S, E, Inf, R, V, day, vaccRates, vaccineCosts):
+@partial(jax.jit, static_argnums=0)
+def vaccinate(config, S, E, Inf, R, V, day):
+    vaccRates, vaccineCosts = (config.vaccRates, config.vaccineCosts)
     # vaccination = element-wise product with vaccRates
     S2V = S * vaccRates
     E2V = E * vaccRates
@@ -25,6 +26,13 @@ def vaccinate(S, E, Inf, R, V, day, vaccRates, vaccineCosts):
     # cost
     vaxCost = (newV - V) * vaccineCosts
     return (newS, newE, newInf, newR, newV, day, vaxCost)
+
+
+@partial(jax.jit, static_argnums=0)
+def seedInfs(config, S, E, Inf, R, V, day):
+    newS = S.at[config.seedAges].add(-config.seedInf)
+    newInf = Inf.at[config.seedAges].add(config.seedInf)
+    return newS, E, newInf, R, V, day
 
 
 @partial(jax.jit, static_argnums=0)
@@ -85,8 +93,9 @@ def step(config, S, E, Inf, R, V, day):
             ambQaly, noMedQaly, hospQaly, lifeyrsLost)
 
 
-@jax.jit
-def age(S, E, Inf, R, V, day, totPop):
+@partial(jax.jit, static_argnums=0)
+def age(config, S, E, Inf, R, V, day):
+    totPop = config.totPop
     newS = jnp.roll(S, 1).at[0].set(0)
     newE = jnp.roll(E, 1).at[0].set(0)
     newInf = jnp.roll(Inf, 1).at[0].set(0)
