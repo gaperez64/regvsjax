@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from kce.SEIRS import Model
+from kce.epidata import EpiData
+import kce.epistep as epistep
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -34,9 +35,9 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
 
         if (curDate.month, curDate.day) == m.seedDate:
             print(f"Seeding infections {curDate} (day {idx}:{day})")
-            state = m.seedInfs(*state)
+            state = epistep.seedInfs(m, *state)
 
-        extState = m.step(*state)
+        extState = epistep.step(m, *state)
         state = extState[0:6]
 
         # TODO: call m.switchProgram("prog name") after an
@@ -46,7 +47,7 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
 
         if (curDate.month, curDate.day) == m.vaccDate:
             print(f"Vaccinating {curDate} (day {idx}:{day})")
-            vaxdState = m.vaccinate(*state)
+            vaxdState = epistep.vaccinate(m, m.vaccRates, *state)
             state = vaxdState[0:6]
             if curDate >= dropBefore:
                 trajectories[-1] = updateVaxCost(trajectories[-1],
@@ -54,7 +55,7 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
 
         if (curDate.month, curDate.day) == m.birthday:
             print(f"Aging population {curDate} (day {idx}:{day})")
-            state = m.age(*state)
+            state = epistep.age(m, *state)
 
         curDate = curDate + timedelta(days=1)
         idx += 1
@@ -98,7 +99,7 @@ def plot(m, trajectories):
 
 
 if __name__ == "__main__":
-    m = Model()
+    m = EpiData()
     endDate = date(year=2021, month=12, day=31)
     ts = simulate(m, endDate, date(year=2017, month=8, day=27))
     plot(m, ts)

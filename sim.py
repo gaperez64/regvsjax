@@ -47,7 +47,7 @@ def simulate(m, endDate, cacheFile=None, cacheDate=None):
 
         if (curDate.month, curDate.day) == m.vaccDate:
             print(f"Vaccinating {curDate} (day {idx}:{day})")
-            vaxdState = epistep.vaccinate(m, *state)
+            vaxdState = epistep.vaccinate(m, m.vaccRates, *state)
             state = vaxdState[0:6]
             trajectories[-1] = updateVaxCost(trajectories[-1], vaxdState[-1])
 

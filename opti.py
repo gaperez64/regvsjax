@@ -18,7 +18,7 @@ def updateVaxCost(t, vaxCost):
     return (*rest, vaxCost + vc, aq, nmq, hq, ll)
 
 
-def simulate(m, endDate):
+def simulate(m, endDate, ):
     state = m.startState()
     curDate = m.startDate
     idx = 1
@@ -40,7 +40,7 @@ def simulate(m, endDate):
 
         if (curDate.month, curDate.day) == m.vaccDate:
             print(f"Vaccinating {curDate} (day {idx}:{day})")
-            vaxdState = epistep.vaccinate(m, m.vaccRates, *state)
+            vaxdState = epistep.vaccinate(m, *state)
             state = vaxdState[0:6]
 
         if (curDate.month, curDate.day) == m.birthday:

@@ -10,6 +10,7 @@ class EpiData:
         df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
                                  axis=1)
         self.vaccRates = jnp.asarray(df["CovXEff"].values)
+        return self.vaccRates
 
     def loadFromCSV(self, fname):
         df = pd.read_csv(fname, header=None)
@@ -49,7 +50,7 @@ class EpiData:
         # Costs
         self.ambulatoryCosts =\
             self.loadFromCSV("econ_data/ambulatory_costs.csv")
-        self.vaccineCosts = self.loadFromCSV("econ_data/vaccine_cost.csv")
+        self.vaccCosts = self.loadFromCSV("econ_data/vaccine_cost.csv")
         self.nomedCosts =\
             self.loadFromCSV("econ_data/no_medical_care_costs.csv")
         self.hospCosts =\

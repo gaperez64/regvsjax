@@ -9,8 +9,7 @@ from functools import partial
 # strategy! To optimize via JAX compilation, this version of the function is
 # externalized.
 @partial(jax.jit, static_argnums=0)
-def vaccinate(config, S, E, Inf, R, V, day):
-    vaccRates, vaccineCosts = config.vaccRates, config.vaccineCosts
+def vaccinate(config, vaccRates, S, E, Inf, R, V, day):
     # vaccination = element-wise product with vaccRates
     S2V = S * vaccRates
     E2V = E * vaccRates
@@ -24,7 +23,7 @@ def vaccinate(config, S, E, Inf, R, V, day):
     newV = V + S2V + E2V + I2V + R2V
 
     # cost
-    vaxCost = (newV - V) * vaccineCosts
+    vaxCost = (newV - V) * config.vaccCosts
     return (newS, newE, newInf, newR, newV, day, vaxCost)
 
 
