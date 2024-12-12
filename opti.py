@@ -18,7 +18,7 @@ def updateVaxCost(t, vaxCost):
     return (*rest, vaxCost + vc, aq, nmq, hq, ll)
 
 
-def simulate(m, endDate, ):
+def simulate(m, endDate):
     state = m.startState()
     curDate = m.startDate
     idx = 1
