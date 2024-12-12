@@ -109,6 +109,7 @@ def plot(m, trajectories):
     plt.show()
 
     # Now we plot qaly
+    total_cost = 0
     summd = []
     d = 1
     for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
@@ -121,6 +122,14 @@ def plot(m, trajectories):
         summd.append(entry)
         entry = ("Life years", float(lifeyrsLost.sum()), d)
         summd.append(entry)
+        total_cost += ((ambCost.sum() +
+                        nomedCost.sum() +
+                        hospCost.sum() +
+                        vaxCost.sum()) +
+                       (ambQaly.sum() +
+                        nomedQaly.sum() +
+                        hospQaly.sum() +
+                        lifeyrsLost.sum()) * 35000)
         d += 1
     df = pd.DataFrame(summd, columns=["QALY", "QALY Units", "Day"])
     sns.lineplot(
@@ -130,6 +139,8 @@ def plot(m, trajectories):
     )
     plt.yscale("log")
     plt.show()
+
+    print(f"The price of it all = {total_cost}")
 
     return
 
