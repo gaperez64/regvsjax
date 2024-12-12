@@ -19,7 +19,7 @@ def updateVaxCost(t, vaxCost):
     return (*rest, vaxCost + vc, aq, nmq, hq, ll)
 
 
-def simulate(m, state, endDate):
+def getCost(vaccRates, m, state, endDate):
     curDate = m.startDate
     total_cost = 0
     while curDate <= endDate:
@@ -37,7 +37,7 @@ def simulate(m, state, endDate):
          ambQaly, nomedQaly, hospQaly, lifeyrsLost) = epistep.step(m, *state)
 
         if (curDate.month, curDate.day) == m.vaccDate:
-            (*state, extraVaxCost) = epistep.vaccinate(m, m.vaccRates, *state)
+            (*state, extraVaxCost) = epistep.vaccinate(m, vaccRates, *state)
             vaxCost += extraVaxCost
 
         total_cost += ((ambCost.sum() +
@@ -61,6 +61,8 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read("config.ini")
     endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
-    cost = simulate(m, m.startState(),  endDate)
+    grad_cost = jax.grad(getCost)
+    cost = getCost(m.vaccRates, m, m.startState(),  endDate)
     print(f"The price of it all = {cost}")
+    print(grad_cost(m.vaccRates, m, m.startState(), endDate))
     exit(0)
