@@ -4,12 +4,15 @@ import numpy as np
 from functools import partial
 
 
-# This is NOT something that's easy to make a method of the model class because
-# the vaccination rates and costs could change after switching vaccination
-# strategy! To optimize via JAX compilation, this version of the function is
-# externalized.
+
 @partial(jax.jit, static_argnums=0)
 def vaccinate(config, vaccRates, S, E, Inf, R, V, day):
+    """
+        This is NOT something that's easy to make a method of the model class because
+        the vaccination rates and costs could change after switching vaccination
+        strategy! To optimize via JAX compilation, this version of the function is
+        externalized.
+    """
     # vaccination = element-wise product with vaccRates
     S2V = S * vaccRates
     E2V = E * vaccRates
