@@ -18,6 +18,13 @@ class EpiData:
         return jnp.asarray(df[0].values, dtype=jnp.float64)
 
     def __init__(self, startDate=None):
+        """
+            Constructor.
+        Parameters
+        ----------
+        startDate
+            The start date of the epidemic simulation. If None, it will be retrieved from the config: Defaults/startDate
+        """
         # FIXME: Factor out hardcoded data manipulations
         # contact matrix
         df = pd.read_csv("data/contact_matrix.csv")

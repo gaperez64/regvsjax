@@ -10,11 +10,24 @@ from epidem_opt.src import kce as epistep
 
 
 def updateVaxCost(t, vaxCost):
+    """
+        Update the vaccination cost.
+
+        This takes a tuple (..., vc, aq, nmq, hq, ll):
+            - ... = other parameters
+            - vc = current vaccination cost
+            - aq = ambulatory costs
+            - nmq = no medical treatment cost
+            - hq = hospital costs
+            - ll = lost life years.
+
+        The value 'vc' is increased with 'vaxCosts', and the modified tuple is returned.
+    """
     # The last five entries are
     # vaxCosts, ambulatoryCosts,
     # noMedCosts, hospCosts, lifeyrsLost
     (*rest, vc, aq, nmq, hq, ll) = t
-    return (*rest, vaxCost + vc, aq, nmq, hq, ll)
+    return *rest, vaxCost + vc, aq, nmq, hq, ll
 
 
 def simulate(m, endDate):
@@ -68,6 +81,7 @@ def main():
     m = EpiData()
     config = configparser.ConfigParser()
     config.read("config.ini")
+    # TODO: move end date into the config.
     endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
     last = simulate(m, endDate)
     dumpCSV(*last)
