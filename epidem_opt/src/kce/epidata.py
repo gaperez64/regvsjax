@@ -111,7 +111,13 @@ class EpiData:
         else:
             self.startDate = startDate
 
-    def startState(self, savedState=None, savedDate=None):
+    def startState(self, savedState: str=None, savedDate: date=None):
+        """
+            Retrieve the start state.
+
+            The "saved state" is a filename that points to a CSV with initial conditions. The "saved date" is a date
+            is ISO format.
+        """
         if savedState is None:
             startDate = self.startDate
             S = self.initPop
