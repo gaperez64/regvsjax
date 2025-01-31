@@ -4,7 +4,6 @@ import numpy as np
 from functools import partial
 
 
-
 @partial(jax.jit, static_argnums=0)
 def vaccinate(config, vaccRates, S, E, Inf, R, V, day):
     """
