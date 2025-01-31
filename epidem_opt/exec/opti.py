@@ -64,4 +64,5 @@ if __name__ == "__main__":
     cost = getCost(m.vaccRates, m, m.startState(),  endDate)
     print(f"The price of it all = {cost}")
     print(grad_cost(m.vaccRates, m, m.startState(), endDate))
+    # TODO: do gradient descent with the gradient.
     exit(0)
