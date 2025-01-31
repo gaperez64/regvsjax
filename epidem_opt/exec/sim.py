@@ -1,9 +1,12 @@
 import configparser
+import pickle
 from datetime import date, timedelta
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import sys
+import jax.numpy as jnp
 
 from epidem_opt.src.kce.epidata import EpiData
 from epidem_opt.src.kce import epistep
@@ -156,11 +159,14 @@ def plot(m, trajectory):
     return
 
 
-if __name__ == "__main__":
+def main():
     m = EpiData()
     config = configparser.ConfigParser()
     config.read("config.ini")
-    endDate = date.fromisoformat(sys.argv[1])
+    try:
+        endDate = date.fromisoformat(sys.argv[1])
+    except:
+        endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
     # we also allow to be given a cached data filename and the day that
     # corresponds
     if len(sys.argv) > 2:
@@ -170,5 +176,26 @@ if __name__ == "__main__":
         ts = simulate(m, endDate, cached, cachedDate)
     else:
         ts = simulate(m, endDate)
-    plot(m, ts)
-    exit(0)
+    # plot(m, ts)
+    # with open("./working_dir/reference_sim.pickle", "wb") as reference_file:
+    #     pickle.dump(obj=ts, file=reference_file)
+
+    with open("./working_dir/reference_sim.pickle", "rb") as reference_file:
+        reference = pickle.load(file=reference_file)
+
+    compare_trajectories(ref_trajectory=reference, actual_trajectory=ts)
+
+
+def compare_trajectories(ref_trajectory, actual_trajectory):
+    assert len(ref_trajectory) == len(actual_trajectory), "Error, different simulation lengths."
+    for day_nr, (ref_day, actual_day) in enumerate(zip(ref_trajectory, actual_trajectory)):
+        assert len(ref_day) == len(actual_day), f"Error, different number of compartments on day {day_nr}."
+        for i, (ref_compartment, actual_compartment) in enumerate(zip(ref_day, actual_day)):
+            assert jnp.allclose(ref_compartment, actual_compartment), \
+                f"Error, {i}-th compartments differ on day {day_nr}."
+    print("All correct.")
+
+
+if __name__ == "__main__":
+    # TODO: call, save stuff
+    main()
