@@ -1,10 +1,9 @@
 import configparser
 from datetime import date, timedelta
-from functools import partial
 import jax
 
-from kce.epidata import EpiData
-import kce.epistep as epistep
+from epidem_opt.src.kce.epidata import EpiData
+from epidem_opt.src import kce as epistep
 
 
 # jax.config.update("jax_enable_x64", True)

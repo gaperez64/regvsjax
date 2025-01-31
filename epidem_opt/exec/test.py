@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from kce.epidata import EpiData
-import kce.epistep as epistep
+from epidem_opt.src.kce.epidata import EpiData
+from epidem_opt.src import kce as epistep
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -77,7 +77,7 @@ def aggregate(mine, regs, label, day):
 def plot(m, trajectories):
     # We first plot differences
     summd = []
-    df = pd.read_csv("data/output_4yrs.csv", header=None)
+    df = pd.read_csv("../../data/output_4yrs.csv", header=None)
     print("Comparing compartment values with Reg's data")
     d = 1
     for (S, E, Inf, R, V, *_) in trajectories:
