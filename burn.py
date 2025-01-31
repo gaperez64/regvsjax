@@ -64,7 +64,8 @@ def dumpCSV(S, E, Inf, R, V, day):
     df.to_csv("data/afterBurnIn.csv", index=False)
 
 
-if __name__ == "__main__":
+def main():
+    # TODO: arguments
     m = EpiData()
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -72,3 +73,7 @@ if __name__ == "__main__":
     last = simulate(m, endDate)
     dumpCSV(*last)
     exit(0)
+
+
+if __name__ == "__main__":
+    main()
