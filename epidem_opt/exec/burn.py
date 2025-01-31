@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import pandas as pd
 
 from epidem_opt.src.kce.epidata import EpiData
-from epidem_opt.src import kce as epistep
+from epidem_opt.src.kce import epistep
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -31,6 +31,15 @@ def updateVaxCost(t, vaxCost):
 
 
 def simulate(m, endDate):
+    """
+        Simulate the epidemic from start date until end date.
+
+        - on peak dates, the "day" is set to 0.
+        - on seed dates, we call "epistep.seedInfs"
+        - after adjusting for peak dates and seed dates, we call "epistep.step" on every iteration
+        - on vaccination dates, we call "epistep.vaccinate"
+        - on the "birth day" dates, we call "epistep.age"
+    """
     state = m.startState()
     curDate = m.startDate
     idx = 1

@@ -6,7 +6,7 @@ import seaborn as sns
 import sys
 
 from epidem_opt.src.kce.epidata import EpiData
-from epidem_opt.src import kce as epistep
+from epidem_opt.src.kce import epistep
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -21,6 +21,17 @@ def updateVaxCost(t, vaxCost):
 
 
 def simulate(m, endDate, cacheFile=None, cacheDate=None):
+    """
+        TODO: this is the same as the simulation loop in the "burn" module. Refactor.
+
+        Simulate the epidemic from start date until end date.
+
+        - on peak dates, the "day" is set to 0.
+        - on seed dates, we call "epistep.seedInfs"
+        - after adjusting for peak dates and seed dates, we call "epistep.step" on every iteration
+        - on vaccination dates, we call "epistep.vaccinate"
+        - on the "birth day" dates, we call "epistep.age"
+    """
     state = m.startState(cacheFile, cacheDate)
     trajectories = []
     curDate = m.startDate
