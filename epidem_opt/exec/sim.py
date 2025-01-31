@@ -33,7 +33,7 @@ def simulate(m, endDate, cacheFile=None, cacheDate=None):
         - on the "birth day" dates, we call "epistep.age"
     """
     state = m.startState(cacheFile, cacheDate)
-    trajectories = []
+    trajectory = []
     curDate = m.startDate
     idx = 1
     print(f"Start date {curDate}")
@@ -54,13 +54,13 @@ def simulate(m, endDate, cacheFile=None, cacheDate=None):
 
         # TODO: call m.switchProgram("prog name") after an
         # appropriate number of days
-        trajectories.append(extState)
+        trajectory.append(extState)
 
         if (curDate.month, curDate.day) == m.vaccDate:
             print(f"Vaccinating {curDate} (day {idx}:{day})")
             vaxdState = epistep.vaccinate(m, m.vaccRates, *state)
             state = vaxdState[0:6]
-            trajectories[-1] = updateVaxCost(trajectories[-1], vaxdState[-1])
+            trajectory[-1] = updateVaxCost(trajectory[-1], vaxdState[-1])
 
         if (curDate.month, curDate.day) == m.birthday:
             print(f"Aging population {curDate} (day {idx}:{day})")
@@ -69,14 +69,14 @@ def simulate(m, endDate, cacheFile=None, cacheDate=None):
         curDate = curDate + timedelta(days=1)
         idx += 1
     print(f"End date {curDate} (day {idx}:{day})")
-    return trajectories
+    return trajectory
 
 
-def plot(m, trajectories):
+def plot(m, trajectory):
     # We first plot dynamics
     summd = []
     d = 1
-    for (S, E, Inf, R, V, day, *_) in trajectories:
+    for (S, E, Inf, R, V, day, *_) in trajectory:
         entry = ("Susceptible", float(S.sum()), d)
         summd.append(entry)
         entry = ("Exposed", float(E.sum()), d)
@@ -100,7 +100,7 @@ def plot(m, trajectories):
     summd = []
     d = 1
     for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
-         ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectories:
+         ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectory:
         entry = ("Ambulatory", float(ambCost.sum()), d)
         summd.append(entry)
         entry = ("No med care", float(nomedCost.sum()), d)
@@ -124,7 +124,7 @@ def plot(m, trajectories):
     summd = []
     d = 1
     for (*_, day, ambCost, nomedCost, hospCost, vaxCost,
-         ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectories:
+         ambQaly, nomedQaly, hospQaly, lifeyrsLost) in trajectory:
         entry = ("Ambulatory", float(ambQaly.sum()), d)
         summd.append(entry)
         entry = ("No med care", float(nomedQaly.sum()), d)
