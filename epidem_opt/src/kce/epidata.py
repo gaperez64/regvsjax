@@ -27,51 +27,6 @@ class EpiData:
         startDate
             The start date of the epidemic simulation. If None, it will be retrieved from the config: Defaults/startDate
         """
-        # FIXME: Factor out hardcoded data manipulations
-        # contact matrix
-        df = pd.read_csv("data/contact_matrix.csv")
-        assert df.shape[0] == 100
-        self.contact = jnp.asarray(df.values)
-        # mortality rates
-        df = pd.read_csv("data/rateMort.csv")
-        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
-        assert df.shape[0] == 100
-        self.dailyMort = jnp.asarray(df["Value"].values) / 365
-        # initial population
-        df = pd.read_csv("data/startPop.csv")
-        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
-        assert df.shape[0] == 100
-        self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
-        self.totPop = self.initPop.sum()
-        print(f" ****** Initial total population {self.totPop}")
-
-        # Detail rates
-        df = pd.read_csv("data/influenzaRate.csv", header=None)
-        assert df.shape[0] == 100
-        self.influenzaRate = jnp.asarray(df[0].values, dtype=jnp.float64)
-        df = pd.read_csv("data/hospRate.csv")
-        assert df.shape[0] == 100
-        self.hospRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
-        df = pd.read_csv("data/caseFatalityRate.csv")
-        assert df.shape[0] == 100
-        self.caseFatalityRate = jnp.asarray(df["Rate"].values,
-                                            dtype=jnp.float64)
-        # Costs
-        self.ambulatoryCosts = self.loadFromCSV("econ_data/ambulatory_costs.csv")
-        self.vaccCosts = self.loadFromCSV("econ_data/vaccine_cost.csv")
-        self.nomedCosts = self.loadFromCSV("econ_data/no_medical_care_costs.csv")
-        self.hospCosts = self.loadFromCSV("econ_data/hospitalization_costs.csv")
-        self.hospAmbCosts = self.loadFromCSV("econ_data/hosp_ambulatory_costs.csv")
-
-        # Qalys
-        self.ambulatoryQalys = self.loadFromCSV("econ_data/ambulatory_qaly_loss.csv")
-        self.nomedQalys = self.loadFromCSV("econ_data/no_medical_care_qaly_loss.csv")
-        self.hospQalys = self.loadFromCSV("econ_data/hospitalized_qaly_loss.csv")
-        self.discLifeEx = self.loadFromCSV("econ_data/discounted_life_expectancy.csv")
-
-        # vaccination stats
-        self.switchProgram()
-
         # Load parameters and constants from configuration file
         config = configparser.ConfigParser()
         config.read(config_path)
@@ -104,6 +59,57 @@ class EpiData:
                 config.get("Defaults", "startDate"))
         else:
             self.startDate = startDate
+
+        # FIXME: Factor out hardcoded data manipulations
+        # contact matrix
+        data_folder = Path("./data")  # TODO: arg
+        df = pd.read_csv(data_folder / config.get("EpidemFiles", "contactMatrix"))
+        assert df.shape[0] == 100
+        self.contact = jnp.asarray(df.values)
+        # mortality rates
+        df = pd.read_csv(data_folder / config.get("EpidemFiles", "mortalityRates"))
+        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
+        assert df.shape[0] == 100
+        self.dailyMort = jnp.asarray(df["Value"].values) / 365
+        # initial population
+        df = pd.read_csv(data_folder / config.get("EpidemFiles", "startPopulation"))
+        df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
+        assert df.shape[0] == 100
+        self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
+        self.totPop = self.initPop.sum()
+        print(f" ****** Initial total population {self.totPop}")
+
+        # Detail rates
+        df = pd.read_csv(data_folder / config.get("EpidemFiles", "influenzaRate"), header=None)
+        assert df.shape[0] == 100
+        self.influenzaRate = jnp.asarray(df[0].values, dtype=jnp.float64)
+        df = pd.read_csv(data_folder / config.get("EpidemFiles", "hospRate"))
+        assert df.shape[0] == 100
+        self.hospRate = jnp.asarray(df["Rate"].values, dtype=jnp.float64)
+        df = pd.read_csv(data_folder / config.get("EpidemFiles", "caseFatalityRate"))
+        assert df.shape[0] == 100
+        self.caseFatalityRate = jnp.asarray(df["Rate"].values,
+                                            dtype=jnp.float64)
+        # Costs
+        econ_folder = Path("./econ_data")  # TODO: arg
+        self.ambulatoryCosts = self.loadFromCSV(
+            econ_folder / config.get("EconFiles", "ambulatoryCosts"))
+        self.vaccCosts = self.loadFromCSV(econ_folder / config.get("EconFiles", "vaccineCost"))
+        self.nomedCosts = self.loadFromCSV(econ_folder / config.get("EconFiles", "noMedicalCareCosts"))
+        self.hospCosts = self.loadFromCSV(econ_folder / config.get("EconFiles", "hospCosts"))
+        self.hospAmbCosts = self.loadFromCSV(econ_folder / config.get("EconFiles", "hospAmbulatoryCosts"))
+
+        # Qalys
+        qaly_folder = Path("./econ_data")  # TODO: arg
+        self.ambulatoryQalys = self.loadFromCSV(qaly_folder / config.get("QalyFiles", "ambulatoryQalyLoss"))
+        self.nomedQalys = self.loadFromCSV(qaly_folder / config.get("QalyFiles", "noMedicalCareQalyLoss"))
+        self.hospQalys = self.loadFromCSV(qaly_folder / config.get("QalyFiles", "hospitalizedQalyLoss"))
+        self.discLifeEx = self.loadFromCSV(qaly_folder / config.get("QalyFiles", "discountedLifeExpectancy"))
+
+        # vaccination stats
+        self.switchProgram()
+
+
 
     def startState(self, savedState: str=None, savedDate: date=None):
         """
