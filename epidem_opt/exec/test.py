@@ -133,9 +133,6 @@ def main():
 
 if __name__ == "__main__":
     # TODO:
-    #   - change constructor to load a config file, instead of config.ini
-    #   - copy config.ini to the test-cases directory
-    #   - change config.ini to contain all the filenames of the files used by EpiData
     #   - copy those files as well, to a test-cases directory.
     main()
 

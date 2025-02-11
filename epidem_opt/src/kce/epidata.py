@@ -109,8 +109,6 @@ class EpiData:
         # vaccination stats
         self.switchProgram()
 
-
-
     def startState(self, savedState: str=None, savedDate: date=None):
         """
             Retrieve the start state.
