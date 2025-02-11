@@ -1,6 +1,10 @@
+import pickle
 from datetime import date, timedelta
+from pathlib import Path
+
 import jax
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -10,6 +14,8 @@ import epidem_opt.src.kce.epistep as epistep
 
 
 # jax.config.update("jax_enable_x64", True)
+
+import jax.numpy as jnp
 
 
 def updateVaxCost(t, vaxCost):
@@ -102,14 +108,36 @@ def plot(m, trajectories):
     return
 
 
+def compare_trajectories(ref_trajectory, actual_trajectory):
+    assert len(ref_trajectory) == len(actual_trajectory), "Error, different simulation lengths."
+    for day_nr, (ref_day, actual_day) in enumerate(zip(ref_trajectory, actual_trajectory)):
+        assert len(ref_day) == len(actual_day), f"Error, different number of compartments on day {day_nr}."
+        for i, (ref_compartment, actual_compartment) in enumerate(zip(ref_day, actual_day)):
+            assert (ref_compartment == actual_compartment).all(), f"Error, {i}-th compartments differ on day {day_nr}."
+    print("All correct.")
+
+
+def main():
+    m = EpiData(config_path=Path("./test_reference/config.ini"))
+    endDate = date(year=2021, month=12, day=31)
+    ts = simulate(m=m, endDate=endDate, dropBefore=date(year=2017, month=8, day=27))
+
+    # with open("./working_dir/test_reference.pickle", "wb") as f:
+    #     pickle.dump(ts, f)
+
+    with open("./working_dir/test_reference.pickle", "rb") as f:
+        ref_trajectory = pickle.load(f)
+
+    compare_trajectories(actual_trajectory=ts, ref_trajectory=ref_trajectory)
+
+
 if __name__ == "__main__":
     # TODO:
     #   - change constructor to load a config file, instead of config.ini
     #   - copy config.ini to the test-cases directory
     #   - change config.ini to contain all the filenames of the files used by EpiData
     #   - copy those files as well, to a test-cases directory.
-    m = EpiData()  # NOTE: this loads from config.ini
-    endDate = date(year=2021, month=12, day=31)
-    ts = simulate(m=m, endDate=endDate, dropBefore=date(year=2017, month=8, day=27))
-    plot(m, ts)
-    exit(0)
+    main()
+
+    # plot(m, ts)
+    # exit(0)
