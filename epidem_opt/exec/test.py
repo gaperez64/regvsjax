@@ -118,7 +118,10 @@ def compare_trajectories(ref_trajectory, actual_trajectory):
 
 
 def main():
-    m = EpiData(config_path=Path("./test_reference/config.ini"))
+    m = EpiData(config_path=Path("./test_reference/config.ini"),
+                epidem_data_path=Path("./test_reference/epidem_data"),
+                econ_data_path=Path("./test_reference/econ_data"),
+                qaly_data_path=Path("./test_reference/qaly_data"))
     endDate = date(year=2021, month=12, day=31)
     ts = simulate(m=m, endDate=endDate, dropBefore=date(year=2017, month=8, day=27))
 
