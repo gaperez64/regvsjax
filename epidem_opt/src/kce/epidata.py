@@ -1,5 +1,7 @@
 import configparser
 from datetime import date
+from pathlib import Path
+
 import jax.numpy as jnp
 import pandas as pd
 
@@ -17,7 +19,7 @@ class EpiData:
         assert df.shape[0] == 100
         return jnp.asarray(df[0].values, dtype=jnp.float64)
 
-    def __init__(self, startDate=None):
+    def __init__(self, config_path: Path, startDate=None):
         """
             Constructor.
         Parameters
@@ -55,32 +57,24 @@ class EpiData:
         self.caseFatalityRate = jnp.asarray(df["Rate"].values,
                                             dtype=jnp.float64)
         # Costs
-        self.ambulatoryCosts =\
-            self.loadFromCSV("econ_data/ambulatory_costs.csv")
+        self.ambulatoryCosts = self.loadFromCSV("econ_data/ambulatory_costs.csv")
         self.vaccCosts = self.loadFromCSV("econ_data/vaccine_cost.csv")
-        self.nomedCosts =\
-            self.loadFromCSV("econ_data/no_medical_care_costs.csv")
-        self.hospCosts =\
-            self.loadFromCSV("econ_data/hospitalization_costs.csv")
-        self.hospAmbCosts =\
-            self.loadFromCSV("econ_data/hosp_ambulatory_costs.csv")
+        self.nomedCosts = self.loadFromCSV("econ_data/no_medical_care_costs.csv")
+        self.hospCosts = self.loadFromCSV("econ_data/hospitalization_costs.csv")
+        self.hospAmbCosts = self.loadFromCSV("econ_data/hosp_ambulatory_costs.csv")
 
         # Qalys
-        self.ambulatoryQalys =\
-            self.loadFromCSV("econ_data/ambulatory_qaly_loss.csv")
-        self.nomedQalys =\
-            self.loadFromCSV("econ_data/no_medical_care_qaly_loss.csv")
-        self.hospQalys =\
-            self.loadFromCSV("econ_data/hospitalized_qaly_loss.csv")
-        self.discLifeEx =\
-            self.loadFromCSV("econ_data/discounted_life_expectancy.csv")
+        self.ambulatoryQalys = self.loadFromCSV("econ_data/ambulatory_qaly_loss.csv")
+        self.nomedQalys = self.loadFromCSV("econ_data/no_medical_care_qaly_loss.csv")
+        self.hospQalys = self.loadFromCSV("econ_data/hospitalized_qaly_loss.csv")
+        self.discLifeEx = self.loadFromCSV("econ_data/discounted_life_expectancy.csv")
 
         # vaccination stats
         self.switchProgram()
 
         # Load parameters and constants from configuration file
         config = configparser.ConfigParser()
-        config.read("config.ini")
+        config.read(config_path)
         cpars = config["Cont.Pars"]
         self.q = cpars.getfloat("q")
         self.sigma = cpars.getfloat("sigma")
