@@ -5,7 +5,8 @@ import pandas as pd
 import seaborn as sns
 
 from epidem_opt.src.kce.epidata import EpiData
-from epidem_opt.src import kce as epistep
+# from epidem_opt.src import kce as epistep
+import epidem_opt.src.kce.epistep as epistep
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -20,6 +21,9 @@ def updateVaxCost(t, vaxCost):
 
 
 def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
+    # TODO: run this, and then refactor step by step
+    #   - replace state with extState
+    #   - maybe find a more elegant solution, where stuff is put in a dict or object.
     state = m.startState()
     trajectories = []
     curDate = m.startDate
@@ -77,7 +81,7 @@ def aggregate(mine, regs, label, day):
 def plot(m, trajectories):
     # We first plot differences
     summd = []
-    df = pd.read_csv("../../data/output_4yrs.csv", header=None)
+    df = pd.read_csv("./data/output_4yrs.csv", header=None)
     print("Comparing compartment values with Reg's data")
     d = 1
     for (S, E, Inf, R, V, *_) in trajectories:
@@ -99,8 +103,13 @@ def plot(m, trajectories):
 
 
 if __name__ == "__main__":
-    m = EpiData()
+    # TODO:
+    #   - change constructor to load a config file, instead of config.ini
+    #   - copy config.ini to the test-cases directory
+    #   - change config.ini to contain all the filenames of the files used by EpiData
+    #   - copy those files as well, to a test-cases directory.
+    m = EpiData()  # NOTE: this loads from config.ini
     endDate = date(year=2021, month=12, day=31)
-    ts = simulate(m, endDate, date(year=2017, month=8, day=27))
+    ts = simulate(m=m, endDate=endDate, dropBefore=date(year=2017, month=8, day=27))
     plot(m, ts)
     exit(0)
