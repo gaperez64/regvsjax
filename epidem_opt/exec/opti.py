@@ -19,23 +19,28 @@ def get_cost(vaccRates, m, state, end_date):
     cur_date = m.start_date
     total_cost = 0
     while cur_date <= end_date:
-        (S, E, Inf, R, V, day) = state
 
+        # STEP 1: reset flu cycle
         if (cur_date.month, cur_date.day) == m.peak_date:
+            (S, E, Inf, R, V, day) = state
             day = 0
             state = (S, E, Inf, R, V, day)
 
+        # STEP 2: add disease
         if (cur_date.month, cur_date.day) == m.seed_date:
             state = epistep.seedInfs(m, *state)
 
+        # STEP 3: apply step
         (*state,
          amb_cost, nomed_cost, hosp_cost, vax_cost,
          amb_qaly, nomed_qaly, hosp_qaly, lifeyrs_lost) = epistep.step(m, *state)
 
+        # STEP 4: perform vaccination
         if (cur_date.month, cur_date.day) == m.vacc_date:
             (*state, extra_vax_cost) = epistep.vaccinate(m, vaccRates, *state)
             vax_cost += extra_vax_cost
 
+        # STEP 5: register current values
         total_cost += ((amb_cost.sum() +
                         nomed_cost.sum() +
                         hosp_cost.sum() +
@@ -45,6 +50,7 @@ def get_cost(vaccRates, m, state, end_date):
                         hosp_qaly.sum() +
                         lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
 
+        # STEP 6: apply aging
         if (cur_date.month, cur_date.day) == m.birthday:
             state = epistep.age(m, *state)
 
