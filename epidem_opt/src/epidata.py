@@ -123,14 +123,14 @@ class EpiData:
         self.vaccination_rates_path = vaccination_rates_path
         self.switch_program(program="baseline")
 
-    def start_state(self, saved_state: str = None, saved_date: date = None) -> tuple:
+    def start_state(self, saved_state_file: str = None, saved_date: date = None) -> tuple:
         """
             Retrieve the start state.
 
             The "saved state" is a filename that points to a CSV with initial conditions. The "saved date" is a date
             is ISO format.
         """
-        if saved_state is None:
+        if saved_state_file is None:
             start_date = self.start_date
             S = self.init_pop
             E = jnp.zeros(S.size)
@@ -138,7 +138,7 @@ class EpiData:
             R = jnp.zeros(S.size)
             V = jnp.zeros(S.size)
         else:
-            df = pd.read_csv(saved_state)
+            df = pd.read_csv(saved_state_file)
             assert df.shape[0] == 100
             S = jnp.asarray(df["S"].values, dtype=jnp.float64)
             E = jnp.asarray(df["E"].values, dtype=jnp.float64)

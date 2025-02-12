@@ -28,7 +28,7 @@ def test_regression_against_pickled_data():
     """
 
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
-    reference_pickle_path = regina_reference_data_folder / "exact_output.pickle"
+    reference_pickle_path = regina_reference_data_folder / "exact_trajectories.pickle"
 
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
@@ -36,7 +36,7 @@ def test_regression_against_pickled_data():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
     end_data = date(year=2021, month=12, day=31)  # TODO: move into ini
-    actual = simulate_trajectories(m=epi_data, endDate=end_data, drop_before=date(year=2017, month=8, day=27))
+    actual = simulate_trajectories(epi_data=epi_data, end_date=end_data, drop_before=date(year=2017, month=8, day=27))
 
     # assert against previously stored exact output
     with open(reference_pickle_path, "rb") as f:
@@ -70,7 +70,7 @@ def test_regression_against_regina_data():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
     end_data = date(year=2021, month=12, day=31)  # TODO: move into ini
-    actual = simulate_trajectories(m=epi_data, endDate=end_data, drop_before=date(year=2017, month=8, day=27))
+    actual = simulate_trajectories(epi_data=epi_data, end_date=end_data, drop_before=date(year=2017, month=8, day=27))
 
     df = pd.read_csv(reference_csv_path, header=None)
     print("Comparing compartment values with Reg's data")

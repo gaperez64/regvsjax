@@ -10,17 +10,14 @@ from epidem_opt.src.epidata import EpiData
 # from epidem_opt.src import kce as epistep
 import epidem_opt.src.epistep as epistep
 from epidem_opt.src.simulator import simulate_cost
-
+from epidem_opt.test.test_regression import check_output
 
 # jax.config.update("jax_enable_x64", True)
 
 
 
 
-def check_output(ref_cost, actual_cost, ref_grad, actual_grad):
-    assert ref_cost == actual_cost, "Error, cost mismatch"
-    assert jnp.allclose(ref_grad, actual_grad), "Error, grad mismatch"
-    print("All correct.")
+
 
 
 if __name__ == "__main__":
