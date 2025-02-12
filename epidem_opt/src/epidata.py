@@ -6,31 +6,32 @@ import jax.numpy as jnp
 import pandas as pd
 
 
+def load_from_csv(fname):
+    df = pd.read_csv(fname, header=None)
+    assert df.shape[0] == 100
+    return jnp.asarray(df[0].values, dtype=jnp.float64)
+
+
 class EpiData:
-    def switchProgram(self, program: str):
+    def switch_program(self, program: str):
         # TODO: factor out filename.
         df = pd.read_csv(self.vaccination_rates_path / f"program_{program}.csv")
         df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
                                  axis=1)
-        self.vaccRates = jnp.asarray(df["CovXEff"].values)
-        return self.vaccRates
-
-    def loadFromCSV(self, fname):
-        df = pd.read_csv(fname, header=None)
-        assert df.shape[0] == 100
-        return jnp.asarray(df[0].values, dtype=jnp.float64)
+        self.vacc_rates = jnp.asarray(df["CovXEff"].values)
+        return self.vacc_rates
 
     def __init__(self, config_path: Path,
                  epidem_data_path: Path,
                  econ_data_path: Path,
                  qaly_data_path: Path,
                  vaccination_rates_path: Path,
-                 startDate: date=None):
+                 start_date: date=None):
         """
             Constructor.
         Parameters
         ----------
-        startDate
+        start_date
             The start date of the epidemic simulation. If None, it will be retrieved from the config: Defaults/startDate
         """
         # Load parameters and constants from configuration file
@@ -40,33 +41,32 @@ class EpiData:
         self.q = cpars.getfloat("q")
         self.sigma = cpars.getfloat("sigma")
         self.gamma = cpars.getfloat("gamma")
-        self.omegaImm = cpars.getfloat("omegaImm")
-        self.omegaVacc = cpars.getfloat("omegaVacc")
+        self.omega_imm = cpars.getfloat("omegaImm")
+        self.omega_vacc = cpars.getfloat("omegaVacc")
         self.delta = cpars.getfloat("delta")
 
         dpars = config["Disc.Pars"]
-        self.seedInf = dpars.getint("seedInf")
-        self.seedAges = jnp.asarray(range(dpars.getint("seedAgeMin"),
-                                          dpars.getint("seedAgeMax")))
-        self.seedDate = (dpars.getint("seedMonth"),
-                         dpars.getint("seedDay"))
+        self.seed_inf = dpars.getint("seedInf")
+        self.seed_ages = jnp.asarray(range(dpars.getint("seedAgeMin"),
+                                           dpars.getint("seedAgeMax")))
+        self.seed_date = (dpars.getint("seedMonth"),
+                          dpars.getint("seedDay"))
         self.birthday = (dpars.getint("birthMonth"),
                          dpars.getint("birthDay"))
-        self.vaccDate = (dpars.getint("vaccMonth"),
-                         dpars.getint("vaccDay"))
-        self.peakDate = (dpars.getint("peakMonth"),
-                         dpars.getint("peakDay"))
+        self.vacc_date = (dpars.getint("vaccMonth"),
+                          dpars.getint("vaccDay"))
+        self.peak_date = (dpars.getint("peakMonth"),
+                          dpars.getint("peakDay"))
 
-        self.noMedCare = config.getfloat("Cost.Pars", "noMedCare")
+        self.no_med_care = config.getfloat("Cost.Pars", "noMedCare")
 
         # Defaults
-        if startDate is None:
-            self.startDate = date.fromisoformat(
+        if start_date is None:
+            self.start_date = date.fromisoformat(
                 config.get("Defaults", "startDate"))
         else:
-            self.startDate = startDate
+            self.start_date = start_date
 
-        # FIXME: Factor out hardcoded data manipulations
         # contact matrix
         df = pd.read_csv(epidem_data_path / config.get("EpidemFiles", "contactMatrix"))
         assert df.shape[0] == 100
@@ -80,9 +80,9 @@ class EpiData:
         df = pd.read_csv(epidem_data_path / config.get("EpidemFiles", "startPopulation"))
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
         assert df.shape[0] == 100
-        self.initPop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
-        self.totPop = self.initPop.sum()
-        print(f" ****** Initial total population {self.totPop}")
+        self.init_pop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
+        self.tot_pop = self.init_pop.sum()
+        print(f" ****** Initial total population {self.tot_pop}")
 
         # Detail rates
         df = pd.read_csv(epidem_data_path / config.get("EpidemFiles", "influenzaRate"), header=None)
@@ -96,65 +96,65 @@ class EpiData:
         self.caseFatalityRate = jnp.asarray(df["Rate"].values,
                                             dtype=jnp.float64)
         # Costs
-        self.ambulatoryCosts = self.loadFromCSV(
+        self.ambulatory_costs = load_from_csv(
             econ_data_path / config.get("EconFiles", "ambulatoryCosts"))
-        self.vaccCosts = self.loadFromCSV(
+        self.vacc_costs = load_from_csv(
             econ_data_path / config.get("EconFiles", "vaccineCost"))
-        self.nomedCosts = self.loadFromCSV(
+        self.nomedCosts = load_from_csv(
             econ_data_path / config.get("EconFiles", "noMedicalCareCosts"))
-        self.hospCosts = self.loadFromCSV(
+        self.hospCosts = load_from_csv(
             econ_data_path / config.get("EconFiles", "hospCosts"))
-        self.hospAmbCosts = self.loadFromCSV(
+        self.hospAmbCosts = load_from_csv(
             econ_data_path / config.get("EconFiles", "hospAmbulatoryCosts"))
 
         # Qalys
-        self.ambulatoryQalys = self.loadFromCSV(
+        self.ambulatory_qalys = load_from_csv(
             qaly_data_path / config.get("QalyFiles", "ambulatoryQalyLoss"))
-        self.nomedQalys = self.loadFromCSV(
+        self.nomed_qalys = load_from_csv(
             qaly_data_path / config.get("QalyFiles", "noMedicalCareQalyLoss"))
-        self.hospQalys = self.loadFromCSV(
+        self.hosp_qalys = load_from_csv(
             qaly_data_path / config.get("QalyFiles", "hospitalizedQalyLoss"))
-        self.discLifeEx = self.loadFromCSV(
+        self.disc_life_ex = load_from_csv(
             qaly_data_path / config.get("QalyFiles", "discountedLifeExpectancy"))
 
         # vaccination stats
         self.vaccination_rates_path = vaccination_rates_path
-        self.switchProgram(program="baseline")
+        self.switch_program(program="baseline")
 
-    def startState(self, savedState: str = None, savedDate: date = None):
+    def start_state(self, saved_state: str = None, saved_date: date = None) -> tuple:
         """
             Retrieve the start state.
 
             The "saved state" is a filename that points to a CSV with initial conditions. The "saved date" is a date
             is ISO format.
         """
-        if savedState is None:
-            startDate = self.startDate
-            S = self.initPop
+        if saved_state is None:
+            start_date = self.start_date
+            S = self.init_pop
             E = jnp.zeros(S.size)
-            Inf = jnp.zeros(S.size)
+            inf = jnp.zeros(S.size)
             R = jnp.zeros(S.size)
             V = jnp.zeros(S.size)
         else:
-            df = pd.read_csv(savedState)
+            df = pd.read_csv(saved_state)
             assert df.shape[0] == 100
             S = jnp.asarray(df["S"].values, dtype=jnp.float64)
             E = jnp.asarray(df["E"].values, dtype=jnp.float64)
-            Inf = jnp.asarray(df["I"].values, dtype=jnp.float64)
+            inf = jnp.asarray(df["I"].values, dtype=jnp.float64)
             R = jnp.asarray(df["R"].values, dtype=jnp.float64)
             V = jnp.asarray(df["V"].values, dtype=jnp.float64)
-            totPop = S.sum() + E.sum() + Inf.sum() + R.sum() + V.sum()
-            assert totPop == self.totPop
-            startDate = savedDate
+            tot_pop = S.sum() + E.sum() + inf.sum() + R.sum() + V.sum()
+            assert tot_pop == self.tot_pop
+            start_date = saved_date
 
         # Special computation for day
-        onsame = date(year=startDate.year,
-                      month=self.peakDate[0],
-                      day=self.peakDate[1])
-        d = (startDate - onsame).days
+        onsame = date(year=start_date.year,
+                      month=self.peak_date[0],
+                      day=self.peak_date[1])
+        d = (start_date - onsame).days
         if d < 0:
-            onprev = date(year=startDate.year - 1,
-                          month=self.peakDate[0],
-                          day=self.peakDate[1])
-            d = (startDate - onprev).days
-        return S, E, Inf, R, V, d
+            onprev = date(year=start_date.year - 1,
+                          month=self.peak_date[0],
+                          day=self.peak_date[1])
+            d = (start_date - onprev).days
+        return S, E, inf, R, V, d

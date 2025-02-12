@@ -25,14 +25,14 @@ def vaccinate(config, vaccRates, S, E, Inf, R, V, day):
     newV = V + S2V + E2V + I2V + R2V
 
     # cost
-    vaxCost = (newV - V) * config.vaccCosts
+    vaxCost = (newV - V) * config.vacc_costs
     return (newS, newE, newInf, newR, newV, day, vaxCost)
 
 
 @partial(jax.jit, static_argnums=0)
 def seedInfs(config, S, E, Inf, R, V, day):
-    newS = S.at[config.seedAges].add(-config.seedInf)
-    newInf = Inf.at[config.seedAges].add(config.seedInf)
+    newS = S.at[config.seed_ages].add(-config.seed_inf)
+    newInf = Inf.at[config.seed_ages].add(config.seed_inf)
     return newS, E, newInf, R, V, day
 
 
@@ -53,8 +53,8 @@ def step(config, S, E, Inf, R, V, day):
     S2E = S * force  # element-wise product
     E2I = E * config.sigma
     I2R = Inf * config.gamma
-    R2S = R * config.omegaImm
-    V2S = V * config.omegaVacc
+    R2S = R * config.omega_imm
+    V2S = V * config.omega_vacc
 
     # daily mortality = element-wise product with mortality
     # rates
@@ -73,21 +73,21 @@ def step(config, S, E, Inf, R, V, day):
 
     # breakdown of new infections
     confirmedInf = E2I * config.influenzaRate
-    noMedCare = (confirmedInf / config.noMedCare) - confirmedInf
+    noMedCare = (confirmedInf / config.no_med_care) - confirmedInf
     hospd = confirmedInf * config.hospRate
     fatal = confirmedInf * config.caseFatalityRate
 
     # costs
-    ambCost = (confirmedInf - hospd) * config.ambulatoryCosts
+    ambCost = (confirmedInf - hospd) * config.ambulatory_costs
     noMedCost = noMedCare * config.nomedCosts
     hospCost = hospd * (config.hospCosts + config.hospAmbCosts)
     vaxCost = 0
 
     # qalys
-    ambQaly = (confirmedInf - hospd) * config.ambulatoryQalys
-    noMedQaly = noMedCare * config.nomedQalys
-    hospQaly = hospd * config.hospQalys
-    lifeyrsLost = fatal * config.discLifeEx
+    ambQaly = (confirmedInf - hospd) * config.ambulatory_qalys
+    noMedQaly = noMedCare * config.nomed_qalys
+    hospQaly = hospd * config.hosp_qalys
+    lifeyrsLost = fatal * config.disc_life_ex
 
     return (newS, newE, newInf, newR, newV, day + 1,
             ambCost, noMedCost, hospCost, vaxCost,
@@ -96,7 +96,7 @@ def step(config, S, E, Inf, R, V, day):
 
 @partial(jax.jit, static_argnums=0)
 def age(config, S, E, Inf, R, V, day):
-    totPop = config.totPop
+    totPop = config.tot_pop
     newS = jnp.roll(S, 1).at[0].set(0)
     newE = jnp.roll(E, 1).at[0].set(0)
     newInf = jnp.roll(Inf, 1).at[0].set(0)
