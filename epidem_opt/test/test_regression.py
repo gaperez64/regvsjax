@@ -1,6 +1,9 @@
 import pickle
 from datetime import date
 from pathlib import Path
+
+import jax
+import pandas as pd
 import pytest
 
 from epidem_opt.src.epidata import EpiData
@@ -17,20 +20,15 @@ def _compare_trajectories_(ref_trajectory, actual_trajectory):
     print("All correct.")
 
 
-def test_regression():
+def test_regression_against_pickled_data():
     """
-        TODO: end-to-end regression test, where we check that the output is unchanged w.r.t. the reference.
-            - which executables
-            - which reference data
-
+        Regression test that verifies that "simulate()" produces results that are exactly the same
+        as those stored in a pickle file. The pickle file has been created earlier from data produced by
+        "simulate()", before any refactorings.
     """
-
-    # TODO: create assert to verify that our simulator only deviates 20 units from Regina's data at most
-    # TODO: create assert that is exactly aligns with the pickled reference data
 
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
     reference_pickle_path = regina_reference_data_folder / "exact_output.pickle"
-    reference_csv_path = regina_reference_data_folder / "output_regina_code.csv"
 
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
@@ -50,4 +48,39 @@ def test_regression():
         for i, (ref_compartment, actual_compartment) in enumerate(zip(ref_day, actual_day)):
             assert (ref_compartment == actual_compartment).all(), f"Error, {i}-th compartments differ on day {day_nr}."
 
+def _compare_compartments_(actual, expected):
+    expected = jax.numpy.asarray(expected)
+    diff = jax.numpy.max(jax.numpy.abs(actual - expected))
+    return diff
 
+
+def test_regression_against_regina_data():
+    """
+        Regression test that verifies that "simulate()" produces results that differ at most
+        20 units from the data produced by Regina's tool.
+
+        More specifically, for all days, for every compartment, the value is less than 20 units away from Regina's.
+    """
+    regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
+    reference_csv_path = regina_reference_data_folder / "output_regina_code.csv"
+
+    epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
+                       epidem_data_path=regina_reference_data_folder / "epidem_data",
+                       econ_data_path=regina_reference_data_folder / "econ_data",
+                       qaly_data_path=regina_reference_data_folder / "qaly_data",
+                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
+    end_data = date(year=2021, month=12, day=31)  # TODO: move into ini
+    actual = simulate(m=epi_data, endDate=end_data, dropBefore=date(year=2017, month=8, day=27))
+
+    df = pd.read_csv(reference_csv_path, header=None)
+    print("Comparing compartment values with Reg's data")
+    d = 1
+    for (S, E, Inf, R, V, *_) in actual:
+        assert _compare_compartments_(actual=S, expected=df.iloc[0]) <= 20
+        assert _compare_compartments_(actual=E, expected=df.iloc[1]) <= 20
+        assert _compare_compartments_(actual=Inf, expected=df.iloc[2]) <= 20
+        assert _compare_compartments_(actual=R, expected=df.iloc[3]) <= 20
+        assert _compare_compartments_(actual=V, expected=df.iloc[4]) <= 20
+
+        df = df.iloc[5:]
+        d += 1
