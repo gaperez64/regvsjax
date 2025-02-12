@@ -88,7 +88,6 @@ def test_regression_against_regina_data():
 
 def test_regression_against_expected_cost():
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
-    reference_pickle_path = regina_reference_data_folder / "exact_output.pickle"
 
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
@@ -110,8 +109,9 @@ def test_regression_against_expected_gradient():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
 
-    grad_cost = jax.grad(simulate_cost)
-    actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
+    grad_cost = jax.value_and_grad(simulate_cost)
+    actual_cost, actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
+    assert actual_cost == 2774434816.0
 
     with open(reference_pickle_path, 'rb') as ref_grad_file:
         ref_grad = pickle.load(ref_grad_file)

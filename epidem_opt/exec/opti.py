@@ -2,6 +2,7 @@
 from pathlib import Path
 
 import jax
+from jaxopt import GradientDescent
 
 from epidem_opt.src.epidata import EpiData
 from epidem_opt.src.simulator import simulate_cost
@@ -16,12 +17,17 @@ def main():
                        qaly_data_path=Path("./econ_data"),
                        vaccination_rates_path=Path("./vaccination_rates"))
 
-    grad_cost = jax.grad(simulate_cost)
-    cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
+    grad_cost = jax.value_and_grad(simulate_cost)
+    # grad_cost = jax.grad(simulate_cost)
+    # cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
+
+    cost, grad_cost = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
+    print(grad_cost)
     print(f"The price of it all = {cost}")
 
-    grad_cost = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
-    print(grad_cost)
+    # TODO: do gradient descent
+    # TODO: check jax and numpy versions.
+    # solver = GradientDescent(value_and_grad=True)
 
 
 if __name__ == "__main__":
