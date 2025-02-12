@@ -30,6 +30,7 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
     # TODO: run this, and then refactor step by step
     #   - replace state with extState
     #   - maybe find a more elegant solution, where stuff is put in a dict or object.
+    # TODO: make start state an ndarray
     state = m.startState()
     trajectories = []
     curDate = m.startDate
@@ -47,21 +48,26 @@ def simulate(m, endDate, dropBefore=date(year=2000, month=1, day=1)):
             print(f"Seeding infections {curDate} (day {idx}:{day})")
             state = epistep.seedInfs(m, *state)
 
+        # (newS, newE, newInf, newR, newV, day + 1,
+        #             ambCost, noMedCost, hospCost, vaxCost,
+        #             ambQaly, noMedQaly, hospQaly, lifeyrsLost)
         extState = epistep.step(m, *state)
+
+        # state = (newS, newE, newInf, newR, newV, day)
         state = extState[0:6]
 
-        # TODO: call m.switchProgram("prog name") after an
-        # appropriate number of days
-        if curDate >= dropBefore:
-            trajectories.append(extState)
+        # TODO: call m.switchProgram("prog name") after an appropriate number of days
 
         if (curDate.month, curDate.day) == m.vaccDate:
             print(f"Vaccinating {curDate} (day {idx}:{day})")
+            # vaxdState = (newS, newE, newInf, newR, newV, day, vaxCost)
             vaxdState = epistep.vaccinate(m, m.vaccRates, *state)
             state = vaxdState[0:6]
             if curDate >= dropBefore:
-                trajectories[-1] = updateVaxCost(trajectories[-1],
-                                                 vaxdState[-1])
+                extState = updateVaxCost(extState, vaxdState[-1])
+
+        if curDate >= dropBefore:
+            trajectories.append(extState)
 
         if (curDate.month, curDate.day) == m.birthday:
             print(f"Aging population {curDate} (day {idx}:{day})")
@@ -79,9 +85,9 @@ def compare(mine, regs, label, day):
     return ("Diff " + label, float(diff), int(day))
 
 
-def aggregate(mine, regs, label, day):
-    return [("R " + label, float(regs.sum()), int(day)),
-            (label, float(mine.sum()), int(day))]
+# def aggregate(mine, regs, label, day):
+#     return [("R " + label, float(regs.sum()), int(day)),
+#             (label, float(mine.sum()), int(day))]
 
 
 def plot(m, trajectories):
@@ -135,8 +141,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # TODO:
-    #   - copy those files as well, to a test-cases directory.
     main()
 
     # plot(m, ts)
