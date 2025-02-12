@@ -1,13 +1,16 @@
+import configparser
 import pickle
 from datetime import date
 from pathlib import Path
 
 import jax
+from jax import numpy as jnp
+
 import pandas as pd
 import pytest
 
 from epidem_opt.src.epidata import EpiData
-from epidem_opt.src.simulator import simulate_trajectories
+from epidem_opt.src.simulator import simulate_trajectories, simulate_cost
 from epidem_opt.test.conftest import get_test_root
 
 
@@ -84,3 +87,42 @@ def test_regression_against_regina_data():
 
         df = df.iloc[5:]
         d += 1
+
+
+def test_regression_against_expected_cost():
+    regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
+    reference_pickle_path = regina_reference_data_folder / "exact_output.pickle"
+
+    epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
+                       epidem_data_path=regina_reference_data_folder / "epidem_data",
+                       econ_data_path=regina_reference_data_folder / "econ_data",
+                       qaly_data_path=regina_reference_data_folder / "qaly_data",
+                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
+    config = configparser.ConfigParser()
+    config.read(regina_reference_data_folder / "config.ini")
+    endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
+
+    cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), endDate)
+    assert cost == 2774434816.0
+
+
+def test_regression_against_expected_gradient():
+    regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
+    reference_pickle_path = regina_reference_data_folder / "expected_gradients.pickle"
+
+    epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
+                       epidem_data_path=regina_reference_data_folder / "epidem_data",
+                       econ_data_path=regina_reference_data_folder / "econ_data",
+                       qaly_data_path=regina_reference_data_folder / "qaly_data",
+                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
+    config = configparser.ConfigParser()
+    config.read(regina_reference_data_folder / "config.ini")
+    endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
+
+    grad_cost = jax.grad(simulate_cost)
+    actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), endDate)
+
+    with open(reference_pickle_path, 'rb') as ref_grad_file:
+        ref_grad = pickle.load(ref_grad_file)
+
+    assert jnp.allclose(ref_grad, actual_grad), "Error, grad mismatch"
