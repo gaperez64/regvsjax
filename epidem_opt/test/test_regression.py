@@ -1,13 +1,10 @@
-import configparser
 import pickle
 from datetime import date
-from pathlib import Path
 
 import jax
 from jax import numpy as jnp
 
 import pandas as pd
-import pytest
 
 from epidem_opt.src.epidata import EpiData
 from epidem_opt.src.simulator import simulate_trajectories, simulate_cost
@@ -98,11 +95,8 @@ def test_regression_against_expected_cost():
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
-    config = configparser.ConfigParser()
-    config.read(regina_reference_data_folder / "config.ini")
-    endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
 
-    cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), endDate)
+    cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
     assert cost == 2774434816.0
 
 
@@ -115,9 +109,6 @@ def test_regression_against_expected_gradient():
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
-    # config = configparser.ConfigParser()
-    # config.read(regina_reference_data_folder / "config.ini")
-    # endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
 
     grad_cost = jax.grad(simulate_cost)
     actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
