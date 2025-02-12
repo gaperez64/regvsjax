@@ -15,15 +15,6 @@ import epidem_opt.src.epistep as epistep
 # jax.config.update("jax_enable_x64", True)
 
 
-@jax.jit
-def update_vax_cost(t, vaxCost):
-    # The last five entries are
-    # vaxCosts, ambulatoryCosts,
-    # noMedCosts, hospCosts, lifeyrsLost
-    (*rest, vc, aq, nmq, hq, ll) = t
-    return (*rest, vaxCost + vc, aq, nmq, hq, ll)
-
-
 def get_cost(vaccRates, m, state, end_date):
     cur_date = m.start_date
     total_cost = 0
@@ -42,8 +33,8 @@ def get_cost(vaccRates, m, state, end_date):
          amb_qaly, nomed_qaly, hosp_qaly, lifeyrs_lost) = epistep.step(m, *state)
 
         if (cur_date.month, cur_date.day) == m.vacc_date:
-            (*state, extraVaxCost) = epistep.vaccinate(m, vaccRates, *state)
-            vax_cost += extraVaxCost
+            (*state, extra_vax_cost) = epistep.vaccinate(m, vaccRates, *state)
+            vax_cost += extra_vax_cost
 
         total_cost += ((amb_cost.sum() +
                         nomed_cost.sum() +
@@ -52,7 +43,7 @@ def get_cost(vaccRates, m, state, end_date):
                        (amb_qaly.sum() +
                         nomed_qaly.sum() +
                         hosp_qaly.sum() +
-                        lifeyrs_lost.sum()) * 35000)
+                        lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
 
         if (cur_date.month, cur_date.day) == m.birthday:
             state = epistep.age(m, *state)
