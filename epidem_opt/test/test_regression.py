@@ -115,12 +115,12 @@ def test_regression_against_expected_gradient():
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
-    config = configparser.ConfigParser()
-    config.read(regina_reference_data_folder / "config.ini")
-    endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
+    # config = configparser.ConfigParser()
+    # config.read(regina_reference_data_folder / "config.ini")
+    # endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
 
     grad_cost = jax.grad(simulate_cost)
-    actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), endDate)
+    actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
 
     with open(reference_pickle_path, 'rb') as ref_grad_file:
         ref_grad = pickle.load(ref_grad_file)

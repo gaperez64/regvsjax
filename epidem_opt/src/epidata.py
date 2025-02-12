@@ -67,6 +67,8 @@ class EpiData:
         else:
             self.start_date = start_date
 
+        self.last_burnt_date = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
+
         # contact matrix
         df = pd.read_csv(epidem_data_path / config.get("EpidemFiles", "contactMatrix"))
         assert df.shape[0] == 100
