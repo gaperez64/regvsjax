@@ -9,53 +9,12 @@ from jax import numpy as jnp
 from epidem_opt.src.epidata import EpiData
 # from epidem_opt.src import kce as epistep
 import epidem_opt.src.epistep as epistep
-
+from epidem_opt.src.simulator import simulate_cost
 
 
 # jax.config.update("jax_enable_x64", True)
 
 
-def get_cost(vaccRates, m, state, end_date):
-    cur_date = m.start_date
-    total_cost = 0
-    while cur_date <= end_date:
-
-        # STEP 1: reset flu cycle
-        if (cur_date.month, cur_date.day) == m.peak_date:
-            (S, E, Inf, R, V, day) = state
-            day = 0
-            state = (S, E, Inf, R, V, day)
-
-        # STEP 2: add disease
-        if (cur_date.month, cur_date.day) == m.seed_date:
-            state = epistep.seedInfs(m, *state)
-
-        # STEP 3: apply step
-        (*state,
-         amb_cost, nomed_cost, hosp_cost, vax_cost,
-         amb_qaly, nomed_qaly, hosp_qaly, lifeyrs_lost) = epistep.step(m, *state)
-
-        # STEP 4: perform vaccination
-        if (cur_date.month, cur_date.day) == m.vacc_date:
-            (*state, extra_vax_cost) = epistep.vaccinate(m, vaccRates, *state)
-            vax_cost += extra_vax_cost
-
-        # STEP 5: register current values
-        total_cost += ((amb_cost.sum() +
-                        nomed_cost.sum() +
-                        hosp_cost.sum() +
-                        vax_cost.sum()) +
-                       (amb_qaly.sum() +
-                        nomed_qaly.sum() +
-                        hosp_qaly.sum() +
-                        lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
-
-        # STEP 6: apply aging
-        if (cur_date.month, cur_date.day) == m.birthday:
-            state = epistep.age(m, *state)
-
-        cur_date = cur_date + timedelta(days=1)
-    return total_cost
 
 
 def check_output(ref_cost, actual_cost, ref_grad, actual_grad):
@@ -73,8 +32,8 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read("config.ini")
     endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
-    grad_cost = jax.grad(get_cost)
-    cost = get_cost(m.vacc_rates, m, m.start_state(), endDate)
+    grad_cost = jax.grad(simulate_cost)
+    cost = simulate_cost(m.vacc_rates, m, m.start_state(), endDate)
     print(f"The price of it all = {cost}")
     # with open("./working_dir/reference_cost.pickle", 'wb') as ref_file:
     #     pickle.dump(cost, ref_file)

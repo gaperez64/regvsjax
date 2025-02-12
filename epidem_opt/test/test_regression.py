@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from epidem_opt.src.epidata import EpiData
-from epidem_opt.src.simulator import simulate
+from epidem_opt.src.simulator import simulate_trajectories
 from epidem_opt.test.conftest import get_test_root
 
 
@@ -36,7 +36,7 @@ def test_regression_against_pickled_data():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
     end_data = date(year=2021, month=12, day=31)  # TODO: move into ini
-    actual = simulate(m=epi_data, endDate=end_data, drop_before=date(year=2017, month=8, day=27))
+    actual = simulate_trajectories(m=epi_data, endDate=end_data, drop_before=date(year=2017, month=8, day=27))
 
     # assert against previously stored exact output
     with open(reference_pickle_path, "rb") as f:
@@ -70,7 +70,7 @@ def test_regression_against_regina_data():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
     end_data = date(year=2021, month=12, day=31)  # TODO: move into ini
-    actual = simulate(m=epi_data, endDate=end_data, drop_before=date(year=2017, month=8, day=27))
+    actual = simulate_trajectories(m=epi_data, endDate=end_data, drop_before=date(year=2017, month=8, day=27))
 
     df = pd.read_csv(reference_csv_path, header=None)
     print("Comparing compartment values with Reg's data")

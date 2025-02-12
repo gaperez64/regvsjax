@@ -3,9 +3,10 @@ from datetime import date, timedelta
 from epidem_opt.src import epistep
 
 
-
-def simulate(m, endDate, drop_before=date(year=2000, month=1, day=1)):
-    # TODO: make start state an ndarray
+def simulate_trajectories(m, endDate, drop_before=date(year=2000, month=1, day=1)):
+    """
+        Function that simulates the epidemic and returns the trajectories.
+    """
     state = m.start_state()
     trajectories = []
     cur_date = m.start_date
@@ -57,3 +58,50 @@ def simulate(m, endDate, drop_before=date(year=2000, month=1, day=1)):
         idx += 1
     print(f"End date {cur_date} (day {idx}:{day})")
     return trajectories
+
+
+def simulate_cost(vacc_rates, m, state, end_date):
+    """
+        Function that simulates the epidemic and computes all the costs, including the QALY cost.
+    """
+    cur_date = m.start_date
+    total_cost = 0
+    while cur_date <= end_date:
+
+        # STEP 1: reset flu cycle
+        if (cur_date.month, cur_date.day) == m.peak_date:
+            (S, E, Inf, R, V, day) = state
+            day = 0
+            state = (S, E, Inf, R, V, day)
+
+        # STEP 2: add disease
+        if (cur_date.month, cur_date.day) == m.seed_date:
+            state = epistep.seedInfs(m, *state)
+
+        # STEP 3: apply step
+        (*state,
+         amb_cost, nomed_cost, hosp_cost, vax_cost,
+         amb_qaly, nomed_qaly, hosp_qaly, lifeyrs_lost) = epistep.step(m, *state)
+
+        # STEP 4: perform vaccination
+        if (cur_date.month, cur_date.day) == m.vacc_date:
+            (*state, extra_vax_cost) = epistep.vaccinate(m, vacc_rates, *state)
+            vax_cost += extra_vax_cost
+
+        # STEP 5: register current values
+        total_cost += ((amb_cost.sum() +
+                        nomed_cost.sum() +
+                        hosp_cost.sum() +
+                        vax_cost.sum()) +
+                       (amb_qaly.sum() +
+                        nomed_qaly.sum() +
+                        hosp_qaly.sum() +
+                        lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
+
+        # STEP 6: apply aging
+        if (cur_date.month, cur_date.day) == m.birthday:
+            state = epistep.age(m, *state)
+
+        cur_date = cur_date + timedelta(days=1)
+    return total_cost
+
