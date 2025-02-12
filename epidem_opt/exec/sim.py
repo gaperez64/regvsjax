@@ -1,78 +1,15 @@
-import configparser
-import pickle
-from datetime import date, timedelta
+from datetime import date
+from pathlib import Path
+
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import sys
-import jax.numpy as jnp
 
-from epidem_opt.src.kce.epidata import EpiData
-from epidem_opt.src.kce import epistep
-
+from epidem_opt.src.epidata import EpiData
+from epidem_opt.src.simulator import simulate_trajectories
 
 # jax.config.update("jax_enable_x64", True)
-
-
-def updateVaxCost(t, vaxCost):
-    # The last five entries are
-    # vaxCosts, ambulatoryCosts,
-    # noMedCosts, hospCosts, lifeyrsLost
-    (*rest, vc, aq, nmq, hq, ll) = t
-    return (*rest, vaxCost + vc, aq, nmq, hq, ll)
-
-
-def simulate(m, endDate, cacheFile=None, cacheDate=None):
-    """
-        TODO: this is the same as the simulation loop in the "burn" module. Refactor.
-
-        Simulate the epidemic from start date until end date.
-
-        - on peak dates, the "day" is set to 0.
-        - on seed dates, we call "epistep.seedInfs"
-        - after adjusting for peak dates and seed dates, we call "epistep.step" on every iteration
-        - on vaccination dates, we call "epistep.vaccinate"
-        - on the "birth day" dates, we call "epistep.age"
-    """
-    state = m.startState(cacheFile, cacheDate)
-    trajectory = []
-    curDate = m.startDate
-    idx = 1
-    print(f"Start date {curDate}")
-    while curDate <= endDate:
-        (S, E, Inf, R, V, day) = state
-
-        if (curDate.month, curDate.day) == m.peakDate:
-            print(f"Reseting flu cycle {curDate} (day {idx}:{day})")
-            day = 0
-            state = (S, E, Inf, R, V, day)
-
-        if (curDate.month, curDate.day) == m.seedDate:
-            print(f"Seeding infections {curDate} (day {idx}:{day})")
-            state = epistep.seedInfs(m, *state)
-
-        extState = epistep.step(m, *state)
-        state = extState[0:6]
-
-        # TODO: call m.switchProgram("prog name") after an
-        # appropriate number of days
-        trajectory.append(extState)
-
-        if (curDate.month, curDate.day) == m.vaccDate:
-            print(f"Vaccinating {curDate} (day {idx}:{day})")
-            vaxdState = epistep.vaccinate(m, m.vaccRates, *state)
-            state = vaxdState[0:6]
-            trajectory[-1] = updateVaxCost(trajectory[-1], vaxdState[-1])
-
-        if (curDate.month, curDate.day) == m.birthday:
-            print(f"Aging population {curDate} (day {idx}:{day})")
-            state = epistep.age(m, *state)
-
-        curDate = curDate + timedelta(days=1)
-        idx += 1
-    print(f"End date {curDate} (day {idx}:{day})")
-    return trajectory
 
 
 def plot(m, trajectory):
@@ -160,40 +97,25 @@ def plot(m, trajectory):
 
 
 def main():
-    m = EpiData()
-    config = configparser.ConfigParser()
-    config.read("config.ini")
+    epi_data = EpiData(config_path=Path("./config.ini"),
+                epidem_data_path=Path("./epidem_data"),
+                econ_data_path=Path("./econ_data"),
+                qaly_data_path=Path("./qaly_data"),
+                vaccination_rates_path=Path("./vaccination_rates"),)
     try:
-        endDate = date.fromisoformat(sys.argv[1])
+        end_date = date.fromisoformat(sys.argv[1])
     except:
-        endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
+        end_date = epi_data.last_burnt_date
     # we also allow to be given a cached data filename and the day that
     # corresponds
     if len(sys.argv) > 2:
-        cached = sys.argv[2]
-        cachedDate = date.fromisoformat(sys.argv[3])
-        print(f"Cached data file {cached} for date {cachedDate}")
-        ts = simulate(m, endDate, cached, cachedDate)
+        cached = Path(sys.argv[2])
+        cache_date = date.fromisoformat(sys.argv[3])
+        print(f"Cached data file {cached} for date {cache_date}")
+        ts = simulate_trajectories(epi_data=epi_data, end_date=end_date, cache_file=cached, cache_date=cache_date)
     else:
-        ts = simulate(m, endDate)
-    # plot(m, ts)
-    # with open("./working_dir/reference_sim.pickle", "wb") as reference_file:
-    #     pickle.dump(obj=ts, file=reference_file)
-
-    with open("./working_dir/reference_sim.pickle", "rb") as reference_file:
-        reference = pickle.load(file=reference_file)
-
-    compare_trajectories(ref_trajectory=reference, actual_trajectory=ts)
-
-
-def compare_trajectories(ref_trajectory, actual_trajectory):
-    assert len(ref_trajectory) == len(actual_trajectory), "Error, different simulation lengths."
-    for day_nr, (ref_day, actual_day) in enumerate(zip(ref_trajectory, actual_trajectory)):
-        assert len(ref_day) == len(actual_day), f"Error, different number of compartments on day {day_nr}."
-        for i, (ref_compartment, actual_compartment) in enumerate(zip(ref_day, actual_day)):
-            assert jnp.allclose(ref_compartment, actual_compartment), \
-                f"Error, {i}-th compartments differ on day {day_nr}."
-    print("All correct.")
+        ts = simulate_trajectories(epi_data, end_date)
+    plot(epi_data, ts)
 
 
 if __name__ == "__main__":
