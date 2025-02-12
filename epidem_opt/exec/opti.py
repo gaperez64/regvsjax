@@ -1,12 +1,14 @@
 import configparser
 import pickle
 from datetime import date, timedelta
+from pathlib import Path
+
 import jax
 from jax import numpy as jnp
 
-from epidem_opt.src.kce.epidata import EpiData
+from epidem_opt.src.epidata import EpiData
 # from epidem_opt.src import kce as epistep
-import epidem_opt.src.kce.epistep as epistep
+import epidem_opt.src.epistep as epistep
 
 
 
@@ -14,7 +16,7 @@ import epidem_opt.src.kce.epistep as epistep
 
 
 @jax.jit
-def updateVaxCost(t, vaxCost):
+def update_vax_cost(t, vaxCost):
     # The last five entries are
     # vaxCosts, ambulatoryCosts,
     # noMedCosts, hospCosts, lifeyrsLost
@@ -22,40 +24,40 @@ def updateVaxCost(t, vaxCost):
     return (*rest, vaxCost + vc, aq, nmq, hq, ll)
 
 
-def getCost(vaccRates, m, state, endDate):
-    curDate = m.startDate
+def get_cost(vaccRates, m, state, end_date):
+    cur_date = m.start_date
     total_cost = 0
-    while curDate <= endDate:
+    while cur_date <= end_date:
         (S, E, Inf, R, V, day) = state
 
-        if (curDate.month, curDate.day) == m.peakDate:
+        if (cur_date.month, cur_date.day) == m.peak_date:
             day = 0
             state = (S, E, Inf, R, V, day)
 
-        if (curDate.month, curDate.day) == m.seedDate:
+        if (cur_date.month, cur_date.day) == m.seed_date:
             state = epistep.seedInfs(m, *state)
 
         (*state,
-         ambCost, nomedCost, hospCost, vaxCost,
-         ambQaly, nomedQaly, hospQaly, lifeyrsLost) = epistep.step(m, *state)
+         amb_cost, nomed_cost, hosp_cost, vax_cost,
+         amb_qaly, nomed_qaly, hosp_qaly, lifeyrs_lost) = epistep.step(m, *state)
 
-        if (curDate.month, curDate.day) == m.vaccDate:
+        if (cur_date.month, cur_date.day) == m.vacc_date:
             (*state, extraVaxCost) = epistep.vaccinate(m, vaccRates, *state)
-            vaxCost += extraVaxCost
+            vax_cost += extraVaxCost
 
-        total_cost += ((ambCost.sum() +
-                        nomedCost.sum() +
-                        hospCost.sum() +
-                        vaxCost.sum()) +
-                       (ambQaly.sum() +
-                        nomedQaly.sum() +
-                        hospQaly.sum() +
-                        lifeyrsLost.sum()) * 35000)
+        total_cost += ((amb_cost.sum() +
+                        nomed_cost.sum() +
+                        hosp_cost.sum() +
+                        vax_cost.sum()) +
+                       (amb_qaly.sum() +
+                        nomed_qaly.sum() +
+                        hosp_qaly.sum() +
+                        lifeyrs_lost.sum()) * 35000)
 
-        if (curDate.month, curDate.day) == m.birthday:
+        if (cur_date.month, cur_date.day) == m.birthday:
             state = epistep.age(m, *state)
 
-        curDate = curDate + timedelta(days=1)
+        cur_date = cur_date + timedelta(days=1)
     return total_cost
 
 
@@ -66,16 +68,20 @@ def check_output(ref_cost, actual_cost, ref_grad, actual_grad):
 
 
 if __name__ == "__main__":
-    m = EpiData()
+    m = EpiData(config_path=Path("./config.ini"),
+                epidem_data_path=Path("./data"),
+                econ_data_path=Path("./econ_data"),
+                qaly_data_path=Path("./econ_data"),
+                vaccination_rates_path=Path("./vaccination_rates"))
     config = configparser.ConfigParser()
     config.read("config.ini")
     endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
-    grad_cost = jax.grad(getCost)
-    cost = getCost(m.vaccRates, m, m.startState(),  endDate)
+    grad_cost = jax.grad(get_cost)
+    cost = get_cost(m.vacc_rates, m, m.start_state(), endDate)
     print(f"The price of it all = {cost}")
     # with open("./working_dir/reference_cost.pickle", 'wb') as ref_file:
     #     pickle.dump(cost, ref_file)
-    grad_cost = grad_cost(m.vaccRates, m, m.startState(), endDate)
+    grad_cost = grad_cost(m.vacc_rates, m, m.start_state(), endDate)
     print(grad_cost)
     # with open("./working_dir/reference_grad.pickle", 'wb') as ref_file:
     #     pickle.dump(grad_cost, ref_file)
