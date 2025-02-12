@@ -25,10 +25,8 @@ def main():
     print(grad_cost)
     print(f"The price of it all = {cost}")
 
-    # TODO: do gradient descent
-    # TODO: check jax and numpy versions.
-    # solver = GradientDescent(value_and_grad=True)
-
+    solver = GradientDescent(fun=grad_cost, value_and_grad=True, maxiter=100)
+    # TODO: solver.run().params
 
 if __name__ == "__main__":
     main()
