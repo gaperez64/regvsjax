@@ -132,10 +132,13 @@ def main():
     # with open("./working_dir/test_reference.pickle", "wb") as f:
     #     pickle.dump(ts, f)
 
-    with open("./working_dir/test_reference.pickle", "rb") as f:
-        ref_trajectory = pickle.load(f)
+    # with open("./working_dir/test_reference.pickle", "rb") as f:
+    #     ref_trajectory = pickle.load(f)
 
-    compare_trajectories(actual_trajectory=ts, ref_trajectory=ref_trajectory)
+    # compare_trajectories(actual_trajectory=ts, ref_trajectory=ref_trajectory)
+
+    plot(m, trajectories=ts)
+
 
 
 if __name__ == "__main__":
