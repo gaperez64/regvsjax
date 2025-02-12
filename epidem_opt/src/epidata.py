@@ -7,8 +7,9 @@ import pandas as pd
 
 
 class EpiData:
-    def switchProgram(self, prog="baseline"):
-        df = pd.read_csv(f"vaccination_rates/program_{prog}.csv")
+    def switchProgram(self, program: str):
+        # TODO: factor out filename.
+        df = pd.read_csv(self.vaccination_rates_path / f"program_{program}.csv")
         df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
                                  axis=1)
         self.vaccRates = jnp.asarray(df["CovXEff"].values)
@@ -20,11 +21,11 @@ class EpiData:
         return jnp.asarray(df[0].values, dtype=jnp.float64)
 
     def __init__(self, config_path: Path,
-                epidem_data_path: Path,
-                econ_data_path: Path,
-                qaly_data_path: Path,
-
-                 startDate=None):
+                 epidem_data_path: Path,
+                 econ_data_path: Path,
+                 qaly_data_path: Path,
+                 vaccination_rates_path: Path,
+                 startDate: date=None):
         """
             Constructor.
         Parameters
@@ -117,9 +118,10 @@ class EpiData:
             qaly_data_path / config.get("QalyFiles", "discountedLifeExpectancy"))
 
         # vaccination stats
-        self.switchProgram()
+        self.vaccination_rates_path = vaccination_rates_path
+        self.switchProgram(program="baseline")
 
-    def startState(self, savedState: str=None, savedDate: date=None):
+    def startState(self, savedState: str = None, savedDate: date = None):
         """
             Retrieve the start state.
 
