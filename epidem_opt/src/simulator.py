@@ -3,13 +3,6 @@ from datetime import date, timedelta
 from epidem_opt.src import epistep
 
 
-def update_vax_cost(t, vax_cost):
-    # The last five entries are
-    # vaxCosts, ambulatoryCosts,
-    # noMedCosts, hospCosts, lifeyrsLost
-    (*rest, vc, aq, nmq, hq, ll) = t
-    return (*rest, vax_cost + vc, aq, nmq, hq, ll)
-
 
 def simulate(m, endDate, drop_before=date(year=2000, month=1, day=1)):
     # TODO: make start state an ndarray
@@ -45,8 +38,10 @@ def simulate(m, endDate, drop_before=date(year=2000, month=1, day=1)):
             # vaxdState = (newS, newE, newInf, newR, newV, day, vaxCost)
             vaxd_state = epistep.vaccinate(m, m.vacc_rates, *state)
             state = vaxd_state[0:6]
-            if cur_date >= drop_before:
-                extState = update_vax_cost(extState, vaxd_state[-1])
+            # if cur_date >= drop_before:
+            (*rest, vc, aq, nmq, hq, ll) = extState
+            extState = (*rest, vaxd_state[-1] + vc, aq, nmq, hq, ll)
+                # extState = update_vax_cost(extState, vaxd_state[-1])
 
         if cur_date >= drop_before:
             trajectories.append(extState)
