@@ -5,7 +5,7 @@ from functools import partial
 
 
 @partial(jax.jit, static_argnums=0)
-def vaccinate(config, vaccRates, S, E, Inf, R, V, day):
+def vaccinate(config, vacc_rates, S, E, Inf, R, V, day):
     """
         This is NOT something that's easy to make a method of the model class because
         the vaccination rates and costs could change after switching vaccination
@@ -13,20 +13,20 @@ def vaccinate(config, vaccRates, S, E, Inf, R, V, day):
         externalized.
     """
     # vaccination = element-wise product with vaccRates
-    S2V = S * vaccRates
-    E2V = E * vaccRates
-    I2V = Inf * vaccRates
-    R2V = R * vaccRates
+    S2V = S * vacc_rates
+    E2V = E * vacc_rates
+    I2V = Inf * vacc_rates
+    R2V = R * vacc_rates
     # updates
-    newS = S - S2V
-    newE = E - E2V
-    newInf = Inf - I2V
-    newR = R - R2V
-    newV = V + S2V + E2V + I2V + R2V
+    new_s = S - S2V
+    new_e = E - E2V
+    new_inf = Inf - I2V
+    new_r = R - R2V
+    new_v = V + S2V + E2V + I2V + R2V
 
     # cost
-    vaxCost = (newV - V) * config.vacc_costs
-    return (newS, newE, newInf, newR, newV, day, vaxCost)
+    vax_cost = (new_v - V) * config.vacc_costs
+    return new_s, new_e, new_inf, new_r, new_v, day, vax_cost
 
 
 @partial(jax.jit, static_argnums=0)

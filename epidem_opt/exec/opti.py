@@ -17,16 +17,20 @@ def main():
                        qaly_data_path=Path("./econ_data"),
                        vaccination_rates_path=Path("./vaccination_rates"))
 
-    grad_cost = jax.value_and_grad(simulate_cost)
+    value_and_grad_func = jax.value_and_grad(simulate_cost)
     # grad_cost = jax.grad(simulate_cost)
     # cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
 
-    cost, grad_cost = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
-    print(grad_cost)
+    cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
+    print(gradient)
+    print(gradient.shape[0])
     print(f"The price of it all = {cost}")
+    # TODO: it seems this gradient is with respect to the vaccination cost. How does it know this? Why did it not
+    #   differentiate with respect to the other parameters?
 
-    solver = GradientDescent(fun=grad_cost, value_and_grad=True, maxiter=100)
+    solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
     # TODO: solver.run().params
+
 
 if __name__ == "__main__":
     main()

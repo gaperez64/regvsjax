@@ -64,32 +64,34 @@ def simulate_trajectories(epi_data: EpiData,
     return trajectories
 
 
-def simulate_cost(vacc_rates, m, state, end_date):
+def simulate_cost(vacc_rates, epi_data, state, end_date):
     """
         Function that simulates the epidemic and computes all the costs, including the QALY cost.
+
+        state is the initial state.
     """
-    cur_date = m.start_date
+    cur_date = epi_data.start_date
     total_cost = 0
     while cur_date <= end_date:
 
         # STEP 1: reset flu cycle
-        if (cur_date.month, cur_date.day) == m.peak_date:
+        if (cur_date.month, cur_date.day) == epi_data.peak_date:
             (S, E, Inf, R, V, day) = state
             day = 0
             state = (S, E, Inf, R, V, day)
 
         # STEP 2: add disease
-        if (cur_date.month, cur_date.day) == m.seed_date:
-            state = epistep.seedInfs(m, *state)
+        if (cur_date.month, cur_date.day) == epi_data.seed_date:
+            state = epistep.seedInfs(epi_data, *state)
 
         # STEP 3: apply step
         (*state,
          amb_cost, nomed_cost, hosp_cost, vax_cost,
-         amb_qaly, nomed_qaly, hosp_qaly, lifeyrs_lost) = epistep.step(m, *state)
+         amb_qaly, nomed_qaly, hosp_qaly, lifeyrs_lost) = epistep.step(epi_data, *state)
 
         # STEP 4: perform vaccination
-        if (cur_date.month, cur_date.day) == m.vacc_date:
-            (*state, extra_vax_cost) = epistep.vaccinate(m, vacc_rates, *state)
+        if (cur_date.month, cur_date.day) == epi_data.vacc_date:
+            (*state, extra_vax_cost) = epistep.vaccinate(epi_data, vacc_rates, *state)
             vax_cost += extra_vax_cost
 
         # STEP 5: register current values
@@ -103,8 +105,8 @@ def simulate_cost(vacc_rates, m, state, end_date):
                         lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
 
         # STEP 6: apply aging
-        if (cur_date.month, cur_date.day) == m.birthday:
-            state = epistep.age(m, *state)
+        if (cur_date.month, cur_date.day) == epi_data.birthday:
+            state = epistep.age(epi_data, *state)
 
         cur_date = cur_date + timedelta(days=1)
     return total_cost
