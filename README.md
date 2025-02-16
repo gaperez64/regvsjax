@@ -6,6 +6,17 @@ vaccination strategy parameters.
 
 In both parts, JAX is used.
 
+# NEW README (cool)
+
+## Summarising the vaccination rates
+
+```
+python -m epidem_opt.exec.find_vaccination_box --vacc_dir ./vaccination_rates --output_file ./vaccination_box.csv
+```
+
+
+# OLD README (boring)
+
 ## Dependencies
 A `requirements.txt` file is provided with all required packages to run the
 code. If you are not using a (Mac) MX processor, you need `reqs-linux-x86_64.txt` instead.

@@ -6,6 +6,8 @@ from jaxopt import GradientDescent
 
 from epidem_opt.src.epidata import EpiData
 from epidem_opt.src.simulator import simulate_cost
+from epidem_opt.src.vacc_programs import read_cube
+
 
 # jax.config.update("jax_enable_x64", True)
 
@@ -30,6 +32,11 @@ def main():
 
     solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
     # TODO: solver.run().params
+
+    # read vaccination programs over which we optimise
+    cube = read_cube(Path("./vaccination_box.csv"))
+    print(cube.get_age_groups())
+    print(cube.get_range(age_group=15))
 
 
 if __name__ == "__main__":
