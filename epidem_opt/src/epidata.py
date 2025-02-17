@@ -113,7 +113,7 @@ class EpiData:
         self.vaccination_rates_path = vaccination_rates_path
         self.switch_program(program="baseline")
 
-    def start_state(self, saved_state_file: str = None, saved_date: date = None
+    def start_state(self, saved_state_file: Path = None, saved_date: date = None
                     ) -> tuple[Array, Array, Array, Array, Array, int]:
         """
             Retrieve the start state.
