@@ -55,10 +55,10 @@ def main():
         qaly_data_path=experiment_data / "qaly_data",
         vaccination_rates_path=experiment_data / "vaccination_rates"
     )
-    last = simulate_trajectories(epi_data, epi_data.last_burnt_date)
+    trajectory = simulate_trajectories(epi_data, epi_data.last_burnt_date)
 
     # take state vector and store to CSV
-    (*epidem_state, day) = last
+    epidem_state = trajectory[-1][0:5]
     save_to_csv(*epidem_state, output_file=output_file)
 
 
