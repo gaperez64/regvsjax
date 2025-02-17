@@ -19,24 +19,27 @@ def main():
                        qaly_data_path=Path("./econ_data"),
                        vaccination_rates_path=Path("./vaccination_rates"))
 
+    # construct derivative. This will differential w.r.t. the vaccination rates.
     value_and_grad_func = jax.value_and_grad(simulate_cost)
-    # grad_cost = jax.grad(simulate_cost)
-    # cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
 
-    cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
-    print(gradient)
-    print(gradient.shape[0])
-    print(f"The price of it all = {cost}")
-    # TODO: it seems this gradient is with respect to the vaccination cost. How does it know this? Why did it not
-    #   differentiate with respect to the other parameters?
+    # we start the vaccination simulation with the output of the burn-in step
+    start_state = epi_data.start_state(
+        saved_state_file="burn_file",  # TODO: save burn stuff to file
+        saved_date=epi_data.last_burnt_date
+    )
 
-    solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
-    # TODO: solver.run().params
+    # cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, start_state, epi_data.end_date)
 
     # read vaccination programs over which we optimise
     cube = read_cube(Path("./vaccination_box.csv"))
-    print(cube.get_age_groups())
-    print(cube.get_range(age_group=15))
+
+    # sample a vaccination program
+    vaccination_program = cube.sample()
+
+    # TODO: extra metadata (vaccination_program, epi_data, start_state, epi_data.end_date)
+    solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
+
+    # TODO: solver.run().params
 
 
 if __name__ == "__main__":

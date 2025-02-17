@@ -4,6 +4,7 @@ from pathlib import Path
 
 import jax.numpy as jnp
 import pandas as pd
+from jax import Array
 
 
 def load_from_csv(fname):
@@ -14,7 +15,6 @@ def load_from_csv(fname):
 
 class EpiData:
     def switch_program(self, program: str):
-        # TODO: factor out filename.
         df = pd.read_csv(self.vaccination_rates_path / f"program_{program}.csv")
         df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
                                  axis=1)
@@ -25,14 +25,9 @@ class EpiData:
                  epidem_data_path: Path,
                  econ_data_path: Path,
                  qaly_data_path: Path,
-                 vaccination_rates_path: Path,
-                 start_date: date=None):
+                 vaccination_rates_path: Path):
         """
             Constructor.
-        Parameters
-        ----------
-        start_date
-            The start date of the epidemic simulation. If None, it will be retrieved from the config: Defaults/startDate
         """
         # Load parameters and constants from configuration file
         config = configparser.ConfigParser()
@@ -60,14 +55,9 @@ class EpiData:
 
         self.no_med_care = config.getfloat("Cost.Pars", "noMedCare")
 
-        # Defaults
-        if start_date is None:
-            self.start_date = date.fromisoformat(
-                config.get("Defaults", "startDate"))
-        else:
-            self.start_date = start_date
-
+        self.start_date = date.fromisoformat(config.get("Defaults", "startDate"))
         self.last_burnt_date = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
+        self.end_date = date.fromisoformat(config.get("Defaults", "endDate"))
 
         # contact matrix
         df = pd.read_csv(epidem_data_path / config.get("EpidemFiles", "contactMatrix"))
@@ -123,7 +113,8 @@ class EpiData:
         self.vaccination_rates_path = vaccination_rates_path
         self.switch_program(program="baseline")
 
-    def start_state(self, saved_state_file: str = None, saved_date: date = None) -> tuple:
+    def start_state(self, saved_state_file: str = None, saved_date: date = None
+                    ) -> tuple[Array, Array, Array, Array, Array, int]:
         """
             Retrieve the start state.
 
