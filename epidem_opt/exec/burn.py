@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -22,15 +23,30 @@ def dumpCSV(S, E, Inf, R, V, day):
 
 def main():
     # TODO: arguments
-    epi_data = EpiData(config_path=Path("./config.ini"),
-                epidem_data_path=Path("./epidem_data"),
-                econ_data_path=Path("./econ_data"),
-                qaly_data_path=Path("./qaly_data"),
-                vaccination_rates_path=Path("./vaccination_rates"),)
+    #   -> experiment folder
+    #   -> output_folder
+
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("--experiment_data", type=str, required=True,
+                            help="Directory with the vaccination information. It should have sub-folders 'data', 'econ_data', 'vaccination_rates', ")
+    arg_parser.add_argument('--output_file', type=str, required=True,
+                            help="Output file with the minimum and maximum rates per age group.")
+
+    args = arg_parser.parse_args()
+
+
+
+    epi_data = EpiData(config_path=Path("./experiment_data/config.ini"),
+                epidem_data_path=Path("./experiment_data/epidem_data"),
+                econ_data_path=Path("./experiment_data/econ_data"),
+                qaly_data_path=Path("./experiment_data/qaly_data"),
+                vaccination_rates_path=Path("./experiment_data/vaccination_rates"),)
     # config = configparser.ConfigParser()
     # config.read("config.ini")
     # endDate = date.fromisoformat(config.get("Defaults", "lastBurntDate"))
     last = simulate_trajectories(epi_data, epi_data.last_burnt_date)
+
+    # TODO: check if this is OK. Add output folder.
     dumpCSV(*last)
 
 
