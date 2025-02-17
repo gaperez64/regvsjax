@@ -13,6 +13,7 @@ from epidem_opt.src.vacc_programs import read_cube
 
 
 def main():
+    # TODO: args
     epi_data = EpiData(config_path=Path("./config.ini"),
                        epidem_data_path=Path("./data"),
                        econ_data_path=Path("./econ_data"),
@@ -28,7 +29,7 @@ def main():
         saved_date=epi_data.last_burnt_date
     )
 
-    # cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, start_state, epi_data.end_date)
+    # cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, start_state, start_date, epi_data.end_date)
 
     # read vaccination programs over which we optimise
     cube = read_cube(Path("./vaccination_box.csv"))

@@ -10,6 +10,8 @@ def simulate_trajectories(epi_data: EpiData,
                           cache_file: Path = None, cache_date: date = None):
     """
         Function that simulates the epidemic and returns the trajectories.
+
+        This is used for the "burn-in" step.
     """
     state = epi_data.start_state(saved_state_file=cache_file, saved_date=cache_date)
     trajectories = []
@@ -64,13 +66,14 @@ def simulate_trajectories(epi_data: EpiData,
     return trajectories
 
 
-def simulate_cost(vacc_rates, epi_data, state, end_date):
+def simulate_cost(vacc_rates, epi_data, state, start_date, end_date):
     """
         Function that simulates the epidemic and computes all the costs, including the QALY cost.
 
-        state is the initial state.
+        "state" is the initial state.
+        This function is used for the gradient descent step. Do NOT add any state-modifying behaviour or I/O.
     """
-    cur_date = epi_data.start_date
+    cur_date = start_date
     total_cost = 0
     while cur_date <= end_date:
 
