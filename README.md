@@ -14,6 +14,18 @@ In both parts, JAX is used.
 python -m epidem_opt.exec.find_vaccination_box --vacc_dir ./vaccination_rates --output_file ./vaccination_box.csv
 ```
 
+## Burn-in step
+
+```
+python -m epidem_opt.exec.burn --experiment_data ./experiment_data --output_file ./experiment_data/burned_in.csv
+```
+
+## Optimisation step
+
+```
+python -m epidem_opt.exec.opti --experiment_data ./experiment_data --burn_in_file ./experiment_data/burned_in.csv
+```
+
 
 # OLD README (boring)
 
