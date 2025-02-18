@@ -13,10 +13,7 @@ from epidem_opt.src.vacc_programs import read_cube
 
 
 def main():
-    # TODO: args
-
-    arg_parser = argparse.ArgumentParser(prog="Utility to simulate the epidemiological behaviour of a population "
-                                              "under a certain baseline vaccination program.")
+    arg_parser = argparse.ArgumentParser(prog="Utility to optimise the vaccination behaviour.")
     arg_parser.add_argument("--experiment_data", type=str, required=True,
                             help="Directory with the vaccination information. It should have sub-folders 'epi_data', "
                                  "'econ_data', 'vaccination_rates', 'qaly_data'.")
@@ -24,11 +21,6 @@ def main():
                             help="CSV file with the results of the burn-in step.")
 
     args = arg_parser.parse_args()
-    #
-    # output_file = Path(args.output_file)
-    # if output_file.is_file():
-    #     print(f"Error: output file '{output_file}' already exists.")
-    #     exit(1)
 
     experiment_data = Path(args.experiment_data)
     if not experiment_data.is_dir():
@@ -63,13 +55,30 @@ def main():
     # cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, start_state, start_date, epi_data.end_date)
 
     # read vaccination programs over which we optimise
-    cube = read_cube(Path("./vaccination_box.csv"))
+    cube = read_cube(Path(experiment_data / "vaccination_box.csv"))
 
-    # sample a vaccination program
-    vaccination_program = cube.sample()
+    # sample an initial vaccination program
+    initial_vacc_program = cube.sample()
 
-    # TODO: extra metadata (vaccination_program, epi_data, start_state, epi_data.end_date)
     solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
+
+    # NOTE: the following two functions can be useful here:
+    # "jax.lax.cond"
+    # "jax.debug.print"
+
+    # init-params is the vaccination program from which we start.
+    # then, we pass additional params (epi_data, start_state, end_date)
+
+    # TODO: make epidata a JAX type.
+    result = solver.run(
+        init_params=initial_vacc_program,
+        epi_data=epi_data,
+        state=start_state,
+        start_date=epi_data.last_burnt_date,
+        end_date=epi_data.end_date
+    )
+
+    print(result)
 
     # TODO: solver.run().params
 
