@@ -56,24 +56,22 @@ def main():
     start_state = epi_data.start_state(
         saved_state_file=burn_in_file,
         saved_date=epi_data.last_burnt_date
-    )
-
-    print(start_state)
+    )  # (S, E, I, R, V, day) with 100 age groups.
 
     # TODO: check that the "day" integer and the start_state "date" objects are aligned.
     # TODO: maybe just use "integer" days somewhere, and store all dates as integers relative to the start date (=day 0)?
     # cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, start_state, start_date, epi_data.end_date)
 
     # read vaccination programs over which we optimise
-    # cube = read_cube(Path("./vaccination_box.csv"))
-    #
-    # # sample a vaccination program
-    # vaccination_program = cube.sample()
-    #
-    # # TODO: extra metadata (vaccination_program, epi_data, start_state, epi_data.end_date)
-    # solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
-    #
-    # # TODO: solver.run().params
+    cube = read_cube(Path("./vaccination_box.csv"))
+
+    # sample a vaccination program
+    vaccination_program = cube.sample()
+
+    # TODO: extra metadata (vaccination_program, epi_data, start_state, epi_data.end_date)
+    solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
+
+    # TODO: solver.run().params
 
 
 if __name__ == "__main__":

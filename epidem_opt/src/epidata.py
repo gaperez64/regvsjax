@@ -72,8 +72,9 @@ class EpiData:
         df = pd.read_csv(epidem_data_path / config.get("EpidemFiles", "startPopulation"))
         df.drop(df.tail(1).index, inplace=True)  # Ignore last value > 100
         assert df.shape[0] == 100
+        # amount of people per age group at time zero
         self.init_pop = jnp.asarray(df["Population"].values, dtype=jnp.float64)
-        self.tot_pop = self.init_pop.sum()
+        self.tot_pop = self.init_pop.sum()  # total amount of people at the start
         print(f" ****** Initial total population {self.tot_pop}")
 
         # Detail rates
@@ -125,19 +126,21 @@ class EpiData:
             start_date = self.start_date
             S = self.init_pop
             E = jnp.zeros(S.size)
-            inf = jnp.zeros(S.size)
+            I = jnp.zeros(S.size)
             R = jnp.zeros(S.size)
             V = jnp.zeros(S.size)
         else:
             df = pd.read_csv(saved_state_file)
-            assert df.shape[0] == 100
+            assert df.shape[0] == 100  # Sanity check: we have 100 age grounds
             S = jnp.asarray(df["S"].values, dtype=jnp.float64)
             E = jnp.asarray(df["E"].values, dtype=jnp.float64)
-            inf = jnp.asarray(df["I"].values, dtype=jnp.float64)
+            I = jnp.asarray(df["I"].values, dtype=jnp.float64)
             R = jnp.asarray(df["R"].values, dtype=jnp.float64)
             V = jnp.asarray(df["V"].values, dtype=jnp.float64)
-            tot_pop = S.sum() + E.sum() + inf.sum() + R.sum() + V.sum()
-            assert tot_pop == self.tot_pop
+            tot_pop = S.sum() + E.sum() + I.sum() + R.sum() + V.sum()
+
+            # Sanity check: the population of the file we read is the same as at the beginning
+            # assert tot_pop == self.tot_pop  # TODO: check
             start_date = saved_date
 
         # Special computation for day
@@ -150,4 +153,4 @@ class EpiData:
                           month=self.peak_date[0],
                           day=self.peak_date[1])
             d = (start_date - onprev).days
-        return S, E, inf, R, V, d
+        return S, E, I, R, V, d

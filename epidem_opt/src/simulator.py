@@ -5,6 +5,14 @@ from epidem_opt.src import epistep
 from epidem_opt.src.epidata import EpiData
 
 
+def check_pop_conservation(old, new):
+    (S, E, I, R, V, day) = old
+    (Snew, Enew, Inew, Rnew, Vnew, daynew) = new
+    tot_pop_before = S.sum() + E.sum() + I.sum() + R.sum() + V.sum()
+    tot_pop_after = Snew.sum() + Enew.sum() + Inew.sum() + Rnew.sum() + Vnew.sum()
+    assert tot_pop_before == tot_pop_after, f"Difference in population: {tot_pop_before-tot_pop_after}"
+
+
 def simulate_trajectories(epi_data: EpiData,
                           end_date: date, drop_before: date=date(year=2000, month=1, day=1),
                           cache_file: Path = None, cache_date: date = None):
@@ -37,6 +45,9 @@ def simulate_trajectories(epi_data: EpiData,
         #             ambCost, noMedCost, hospCost, vaxCost,
         #             ambQaly, noMedQaly, hospQaly, lifeyrsLost)
         ext_state = epistep.step(epi_data, *state)
+
+        # sanity check
+        check_pop_conservation(state, ext_state[0:6])
 
         # state = (newS, newE, newInf, newR, newV, day)
         state = ext_state[0:6]
