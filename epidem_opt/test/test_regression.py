@@ -35,7 +35,7 @@ def test_regression_against_pickled_data():
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
-    end_data = date(year=2021, month=12, day=31)  # TODO: move into ini
+    end_data = date(year=2021, month=12, day=31)
     actual = simulate_trajectories(epi_data=epi_data, end_date=end_data, drop_before=date(year=2017, month=8, day=27))
 
     # assert against previously stored exact output
@@ -69,7 +69,7 @@ def test_regression_against_regina_data():
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
-    end_data = date(year=2021, month=12, day=31)  # TODO: move into ini
+    end_data = date(year=2021, month=12, day=31)
     actual = simulate_trajectories(epi_data=epi_data, end_date=end_data, drop_before=date(year=2017, month=8, day=27))
 
     df = pd.read_csv(reference_csv_path, header=None)
@@ -95,7 +95,8 @@ def test_regression_against_expected_cost():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
 
-    cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
+    cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.start_date,
+                         epi_data.last_burnt_date)
     assert cost == 2774434816.0
 
 
@@ -110,7 +111,8 @@ def test_regression_against_expected_gradient():
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
 
     grad_cost = jax.value_and_grad(simulate_cost)
-    actual_cost, actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.last_burnt_date)
+    actual_cost, actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.start_date,
+                                         epi_data.last_burnt_date)
     assert actual_cost == 2774434816.0
 
     with open(reference_pickle_path, 'rb') as ref_grad_file:

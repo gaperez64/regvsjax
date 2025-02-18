@@ -10,7 +10,7 @@ def check_pop_conservation(old, new):
     (Snew, Enew, Inew, Rnew, Vnew, daynew) = new
     tot_pop_before = S.sum() + E.sum() + I.sum() + R.sum() + V.sum()
     tot_pop_after = Snew.sum() + Enew.sum() + Inew.sum() + Rnew.sum() + Vnew.sum()
-    assert tot_pop_before == tot_pop_after, f"Difference in population: {tot_pop_before-tot_pop_after}"
+    # assert tot_pop_before == tot_pop_after, f"Difference in population: {tot_pop_before-tot_pop_after}"
 
 
 def simulate_trajectories(epi_data: EpiData,

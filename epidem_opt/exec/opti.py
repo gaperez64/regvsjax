@@ -75,7 +75,7 @@ def main():
         init_params=initial_vacc_program,
         epi_data=JaxFriendlyEpiData.create(epi_data),
         state=start_state,
-        start_date=epi_data.last_burnt_date,
+        start_date=epi_data.last_burnt_date,  # TODO: these dates should be replaced by integers.
         end_date=epi_data.end_date
     )
 
