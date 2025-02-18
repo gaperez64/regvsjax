@@ -6,7 +6,7 @@ from jax import numpy as jnp
 
 import pandas as pd
 
-from epidem_opt.src.epidata import EpiData
+from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
 from epidem_opt.src.simulator import simulate_trajectories, simulate_cost
 from epidem_opt.test.conftest import get_test_root
 
@@ -36,7 +36,9 @@ def test_regression_against_pickled_data():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
     end_data = date(year=2021, month=12, day=31)
-    actual = simulate_trajectories(epi_data=epi_data, end_date=end_data, drop_before=date(year=2017, month=8, day=27))
+    actual = simulate_trajectories(epi_data=epi_data, state_date=epi_data.start_date,
+                                   end_date=end_data, drop_before=date(year=2017, month=8, day=27),
+                                   start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
     # assert against previously stored exact output
     with open(reference_pickle_path, "rb") as f:
@@ -70,7 +72,9 @@ def test_regression_against_regina_data():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
     end_data = date(year=2021, month=12, day=31)
-    actual = simulate_trajectories(epi_data=epi_data, end_date=end_data, drop_before=date(year=2017, month=8, day=27))
+    actual = simulate_trajectories(epi_data=epi_data, state_date=epi_data.start_date,
+                                   end_date=end_data, drop_before=date(year=2017, month=8, day=27),
+                                   start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
     df = pd.read_csv(reference_csv_path, header=None)
     print("Comparing compartment values with Reg's data")

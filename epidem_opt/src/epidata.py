@@ -164,9 +164,12 @@ class JaxFriendlyEpiData:
     """
         A JAX-friendly container for epidemiological data.
     """
+    tot_pop: Any
     vacc_date: Any
     seed_date: Any
     peak_date: Any
+    birthday: Any
+    vacc_rates: Any
     vacc_costs: Any
     seed_inf: Any
     seed_ages: Any
@@ -186,6 +189,7 @@ class JaxFriendlyEpiData:
     nomedCosts: Any
     hospCosts: Any
     hospAmbCosts: Any
+    ambulatory_qalys: Any
     nomed_qalys: Any
     hosp_qalys: Any
     disc_life_ex: Any
@@ -194,10 +198,13 @@ class JaxFriendlyEpiData:
     def create(cls, epi_data: EpiData):
         # I used kw arguments here to prevent any accidents.
         return cls(
+            tot_pop=epi_data.tot_pop,
             vacc_date=epi_data.vacc_date,
             seed_date=epi_data.seed_date,
             peak_date=epi_data.peak_date,
+            birthday=epi_data.birthday,
             vacc_costs=epi_data.vacc_costs,
+            vacc_rates=epi_data.vacc_rates,
             seed_inf=epi_data.seed_inf,
             seed_ages=epi_data.seed_ages,
             sigma=epi_data.sigma,
@@ -218,5 +225,6 @@ class JaxFriendlyEpiData:
             hospAmbCosts=epi_data.hospAmbCosts,
             nomed_qalys=epi_data.nomed_qalys,
             hosp_qalys=epi_data.hosp_qalys,
-            disc_life_ex=epi_data.disc_life_ex
+            disc_life_ex=epi_data.disc_life_ex,
+            ambulatory_qalys=epi_data.ambulatory_qalys
         )

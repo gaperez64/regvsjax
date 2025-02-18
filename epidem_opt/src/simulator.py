@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from epidem_opt.src import epistep
-from epidem_opt.src.epidata import EpiData
+from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
 
 
 def check_pop_conservation(old, new):
@@ -11,19 +11,19 @@ def check_pop_conservation(old, new):
     tot_pop_before = S.sum() + E.sum() + I.sum() + R.sum() + V.sum()
     tot_pop_after = Snew.sum() + Enew.sum() + Inew.sum() + Rnew.sum() + Vnew.sum()
     # assert tot_pop_before == tot_pop_after, f"Difference in population: {tot_pop_before-tot_pop_after}"
+    # TODO: check that this matches within 20 units.
 
 
-def simulate_trajectories(epi_data: EpiData,
-                          end_date: date, drop_before: date=date(year=2000, month=1, day=1),
-                          cache_file: Path = None, cache_date: date = None):
+def simulate_trajectories(epi_data: EpiData, state_date: date, start_state,
+                          end_date: date, drop_before: date=date(year=2000, month=1, day=1)):
     """
         Function that simulates the epidemic and returns the trajectories.
 
         This is used for the "burn-in" step.
     """
-    state = epi_data.start_state(saved_state_file=cache_file, saved_date=cache_date)
+    state = start_state
     trajectories = []
-    cur_date = epi_data.start_date
+    cur_date = state_date
     idx = 1
     print(f"Start date {cur_date}")
     while cur_date <= end_date:
