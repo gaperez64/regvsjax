@@ -14,13 +14,25 @@ def check_pop_conservation(old, new):
     # TODO: check that this matches within 20 units.
 
 
-def simulate_trajectories(epi_data: EpiData, state_date: date, start_state,
-                          end_date: date, drop_before: date=date(year=2000, month=1, day=1)):
+def simulate_trajectories(epi_data: EpiData,
+                          # state_date: date,
+                          state_date: tuple[int, int, int],
+                          start_state,
+                          # end_date: date,
+                          end_date: tuple[int, int, int],
+                          # drop_before: date=date(year=2000, month=1, day=1)):
+                          drop_before: tuple[int, int, int]=(2000, 1, 1)):
     """
         Function that simulates the epidemic and returns the trajectories.
 
         This is used for the "burn-in" step.
     """
+
+    # TODO: intermediate step: convert (y, m, d) to date
+    end_date = date(*end_date)
+    state_date = date(*state_date)
+    drop_before = date(*drop_before)
+
     state = start_state
     trajectories = []
     cur_date = state_date

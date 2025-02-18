@@ -36,8 +36,13 @@ def test_regression_against_pickled_data():
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
     end_data = date(year=2021, month=12, day=31)
-    actual = simulate_trajectories(epi_data=epi_data, state_date=epi_data.start_date,
-                                   end_date=end_data, drop_before=date(year=2017, month=8, day=27),
+    actual = simulate_trajectories(epi_data=epi_data,
+                                   # state_date=epi_data.start_date,
+                                   state_date=(epi_data.start_date.year, epi_data.start_date.month, epi_data.start_date.day),
+                                   # end_date=end_data,
+                                   end_date=(end_data.year, end_data.month, end_data.day),
+                                   # drop_before=date(year=2017, month=8, day=27),
+                                   drop_before=(2017, 8, 27),
                                    start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
     # assert against previously stored exact output
@@ -71,9 +76,12 @@ def test_regression_against_regina_data():
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
-    end_data = date(year=2021, month=12, day=31)
-    actual = simulate_trajectories(epi_data=epi_data, state_date=epi_data.start_date,
-                                   end_date=end_data, drop_before=date(year=2017, month=8, day=27),
+    end_date = date(year=2021, month=12, day=31)
+    actual = simulate_trajectories(epi_data=epi_data,
+                                   state_date=(epi_data.start_date.year, epi_data.start_date.month, epi_data.start_date.day),
+                                   end_date=(end_date.year, end_date.month, end_date.day),
+                                   # drop_before=date(year=2017, month=8, day=27),
+                                   drop_before=(2017, 8, 27),
                                    start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
     df = pd.read_csv(reference_csv_path, header=None)
