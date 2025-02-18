@@ -1,9 +1,12 @@
 import configparser
 from datetime import date
 from pathlib import Path
+from typing import Any
 
+import flax
 import jax.numpy as jnp
 import pandas as pd
+from flax import struct
 from jax import Array
 
 
@@ -154,3 +157,66 @@ class EpiData:
                           day=self.peak_date[1])
             d = (start_date - onprev).days
         return S, E, I, R, V, d
+
+
+@struct.dataclass
+class JaxFriendlyEpiData:
+    """
+        A JAX-friendly container for epidemiological data.
+    """
+    vacc_date: Any
+    seed_date: Any
+    peak_date: Any
+    vacc_costs: Any
+    seed_inf: Any
+    seed_ages: Any
+    sigma: Any
+    gamma: Any
+    omega_imm: Any
+    omega_vacc: Any
+    delta: Any
+    contact: Any
+    q: Any
+    dailyMort: Any
+    influenzaRate: Any
+    no_med_care: Any
+    hospRate: Any
+    caseFatalityRate: Any
+    ambulatory_costs: Any
+    nomedCosts: Any
+    hospCosts: Any
+    hospAmbCosts: Any
+    nomed_qalys: Any
+    hosp_qalys: Any
+    disc_life_ex: Any
+
+    @classmethod
+    def create(cls, epi_data: EpiData):
+        # I used kw arguments here to prevent any accidents.
+        return cls(
+            vacc_date=epi_data.vacc_date,
+            seed_date=epi_data.seed_date,
+            peak_date=epi_data.peak_date,
+            vacc_costs=epi_data.vacc_costs,
+            seed_inf=epi_data.seed_inf,
+            seed_ages=epi_data.seed_ages,
+            sigma=epi_data.sigma,
+            gamma=epi_data.gamma,
+            omega_imm=epi_data.omega_imm,
+            omega_vacc=epi_data.omega_vacc,
+            delta=epi_data.delta,
+            contact=epi_data.contact,
+            q=epi_data.q,
+            dailyMort=epi_data.dailyMort,
+            influenzaRate=epi_data.influenzaRate,
+            no_med_care=epi_data.no_med_care,
+            hospRate=epi_data.hospRate,
+            caseFatalityRate=epi_data.caseFatalityRate,
+            ambulatory_costs=epi_data.ambulatory_costs,
+            nomedCosts=epi_data.nomedCosts,
+            hospCosts=epi_data.hospCosts,
+            hospAmbCosts=epi_data.hospAmbCosts,
+            nomed_qalys=epi_data.nomed_qalys,
+            hosp_qalys=epi_data.hosp_qalys,
+            disc_life_ex=epi_data.disc_life_ex
+        )

@@ -4,7 +4,7 @@ from pathlib import Path
 import jax
 from jaxopt import GradientDescent
 
-from epidem_opt.src.epidata import EpiData
+from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
 from epidem_opt.src.simulator import simulate_cost
 from epidem_opt.src.vacc_programs import read_cube
 
@@ -70,9 +70,10 @@ def main():
     # then, we pass additional params (epi_data, start_state, end_date)
 
     # TODO: make epidata a JAX type.
+    #   - use "flax"
     result = solver.run(
         init_params=initial_vacc_program,
-        epi_data=epi_data,
+        epi_data=JaxFriendlyEpiData.create(epi_data),
         state=start_state,
         start_date=epi_data.last_burnt_date,
         end_date=epi_data.end_date

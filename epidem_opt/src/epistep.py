@@ -5,7 +5,7 @@ from functools import partial
 
 
 @partial(jax.jit, static_argnums=0)
-def vaccinate(config, vacc_rates, S, E, Inf, R, V, day):
+def vaccinate(epi_data, vacc_rates, S, E, Inf, R, V, day):
     """
         This is NOT something that's easy to make a method of the model class because
         the vaccination rates and costs could change after switching vaccination
@@ -25,19 +25,19 @@ def vaccinate(config, vacc_rates, S, E, Inf, R, V, day):
     new_v = V + S2V + E2V + I2V + R2V
 
     # cost
-    vax_cost = (new_v - V) * config.vacc_costs
+    vax_cost = (new_v - V) * epi_data.vacc_costs
     return new_s, new_e, new_inf, new_r, new_v, day, vax_cost
 
 
 @partial(jax.jit, static_argnums=0)
-def seedInfs(config, S, E, Inf, R, V, day):
-    newS = S.at[config.seed_ages].add(-config.seed_inf)
-    newInf = Inf.at[config.seed_ages].add(config.seed_inf)
+def seedInfs(epi_data, S, E, Inf, R, V, day):
+    newS = S.at[epi_data.seed_ages].add(-epi_data.seed_inf)
+    newInf = Inf.at[epi_data.seed_ages].add(epi_data.seed_inf)
     return newS, E, newInf, R, V, day
 
 
 @partial(jax.jit, static_argnums=0)
-def step(config, S, E, Inf, R, V, day):
+def step(epi_data, S, E, Inf, R, V, day):
     """
     We simulate one step of (forward) Newton integration
     with h = 1 (day). For efficiency, the method is JIT compiled
@@ -45,24 +45,24 @@ def step(config, S, E, Inf, R, V, day):
     this will result in incorrect results as we assume config
     to be static
     """
-    z = 1 + config.delta * jnp.sin(2 * np.pi * (day / 365))
-    beta = config.contact * config.q
+    z = 1 + epi_data.delta * jnp.sin(2 * np.pi * (day / 365))
+    beta = epi_data.contact * epi_data.q
     force = z * jnp.dot(beta, Inf)
 
     # daily transitions
     S2E = S * force  # element-wise product
-    E2I = E * config.sigma
-    I2R = Inf * config.gamma
-    R2S = R * config.omega_imm
-    V2S = V * config.omega_vacc
+    E2I = E * epi_data.sigma
+    I2R = Inf * epi_data.gamma
+    R2S = R * epi_data.omega_imm
+    V2S = V * epi_data.omega_vacc
 
     # daily mortality = element-wise product with mortality
     # rates
-    S2D = S * config.dailyMort
-    E2D = E * config.dailyMort
-    I2D = Inf * config.dailyMort
-    R2D = R * config.dailyMort
-    V2D = V * config.dailyMort
+    S2D = S * epi_data.dailyMort
+    E2D = E * epi_data.dailyMort
+    I2D = Inf * epi_data.dailyMort
+    R2D = R * epi_data.dailyMort
+    V2D = V * epi_data.dailyMort
 
     # new values for all components
     newS = S - S2E + R2S + V2S - S2D
@@ -72,22 +72,22 @@ def step(config, S, E, Inf, R, V, day):
     newV = V - V2S - V2D
 
     # breakdown of new infections
-    confirmedInf = E2I * config.influenzaRate
-    noMedCare = (confirmedInf / config.no_med_care) - confirmedInf
-    hospd = confirmedInf * config.hospRate
-    fatal = confirmedInf * config.caseFatalityRate
+    confirmedInf = E2I * epi_data.influenzaRate
+    noMedCare = (confirmedInf / epi_data.no_med_care) - confirmedInf
+    hospd = confirmedInf * epi_data.hospRate
+    fatal = confirmedInf * epi_data.caseFatalityRate
 
     # costs
-    ambCost = (confirmedInf - hospd) * config.ambulatory_costs
-    noMedCost = noMedCare * config.nomedCosts
-    hospCost = hospd * (config.hospCosts + config.hospAmbCosts)
+    ambCost = (confirmedInf - hospd) * epi_data.ambulatory_costs
+    noMedCost = noMedCare * epi_data.nomedCosts
+    hospCost = hospd * (epi_data.hospCosts + epi_data.hospAmbCosts)
     vaxCost = 0
 
     # qalys
-    ambQaly = (confirmedInf - hospd) * config.ambulatory_qalys
-    noMedQaly = noMedCare * config.nomed_qalys
-    hospQaly = hospd * config.hosp_qalys
-    lifeyrsLost = fatal * config.disc_life_ex
+    ambQaly = (confirmedInf - hospd) * epi_data.ambulatory_qalys
+    noMedQaly = noMedCare * epi_data.nomed_qalys
+    hospQaly = hospd * epi_data.hosp_qalys
+    lifeyrsLost = fatal * epi_data.disc_life_ex
 
     return (newS, newE, newInf, newR, newV, day + 1,
             ambCost, noMedCost, hospCost, vaxCost,
