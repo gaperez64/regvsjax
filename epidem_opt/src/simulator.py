@@ -143,6 +143,8 @@ def simulate_cost(vacc_rates, epi_data, state, start_date, end_date,
 
         "state" is the initial state.
         This function is used for the gradient descent step. Do NOT add any state-modifying behaviour or I/O.
+
+        TODO: replace the set of integers with a JIT compiled predicate.
     """
     cur_date = start_date
     total_cost = 0
@@ -150,14 +152,16 @@ def simulate_cost(vacc_rates, epi_data, state, start_date, end_date,
 
         # STEP 1: reset flu cycle
         # if (cur_date.month, cur_date.day) == epi_data.peak_date:
-        if cur_date in peak_dates:
+        # if cur_date in peak_dates:
+        if peak_dates(cur_date):
             (S, E, Inf, R, V, day) = state
             day = 0
             state = (S, E, Inf, R, V, day)
 
         # STEP 2: add disease
         # if (cur_date.month, cur_date.day) == epi_data.seed_date:
-        if cur_date in seed_dates:
+        # if cur_date in seed_dates:
+        if seed_dates(cur_date):
             state = epistep.seedInfs(epi_data, *state)
 
         # STEP 3: apply step
@@ -167,7 +171,8 @@ def simulate_cost(vacc_rates, epi_data, state, start_date, end_date,
 
         # STEP 4: perform vaccination
         # if (cur_date.month, cur_date.day) == epi_data.vacc_date:
-        if cur_date in vacc_dates:
+        # if cur_date in vacc_dates:
+        if vacc_dates(cur_date):
             (*state, extra_vax_cost) = epistep.vaccinate(epi_data, vacc_rates, *state)
             vax_cost += extra_vax_cost
 
@@ -183,7 +188,8 @@ def simulate_cost(vacc_rates, epi_data, state, start_date, end_date,
 
         # STEP 6: apply aging
         # if (cur_date.month, cur_date.day) == epi_data.birthday:
-        if cur_date in birth_dates:
+        # if cur_date in birth_dates:
+        if birth_dates(cur_date):
             state = epistep.age(epi_data, *state)
 
         # cur_date = cur_date + timedelta(days=1)

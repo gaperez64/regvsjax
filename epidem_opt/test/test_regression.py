@@ -112,10 +112,10 @@ def test_regression_against_expected_cost():
         epi_data.start_state(),
         begin_date.toordinal(),
         end_date.toordinal(),
-        vacc_dates=date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
-        peak_dates=date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
-        seed_dates=date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),
-        birth_dates=date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
+        vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
+        peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
+        seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),
+        birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
     )
     assert cost == 2774434816.0
 
@@ -140,10 +140,10 @@ def test_regression_against_expected_gradient():
         epi_data.start_state(),
         begin_date.toordinal(),
         end_date.toordinal(),
-        vacc_dates=date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
-        peak_dates=date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
-        seed_dates=date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),
-        birth_dates=date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
+        vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
+        peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
+        seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),
+        birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
     )
     assert actual_cost == 2774434816.0
 

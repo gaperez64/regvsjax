@@ -76,10 +76,10 @@ def main():
         state=start_state,
         start_date=epi_data.last_burnt_date.toordinal(),  # TODO: these dates should be replaced by integers.
         end_date=epi_data.end_date.toordinal(),
-        vacc_dates=date_to_ordinal_set(epi_data.vacc_date, epi_data.last_burnt_date, epi_data.end_date),
-        peak_dates=date_to_ordinal_set(epi_data.peak_date, epi_data.last_burnt_date, epi_data.end_date),
-        seed_dates=date_to_ordinal_set(epi_data.seed_date, epi_data.last_burnt_date, epi_data.end_date),
-        birth_dates=date_to_ordinal_set(epi_data.birthday, epi_data.last_burnt_date, epi_data.end_date)
+        vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date, epi_data.last_burnt_date, epi_data.end_date),
+        peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date, epi_data.last_burnt_date, epi_data.end_date),
+        seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date, epi_data.last_burnt_date, epi_data.end_date),
+        birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday, epi_data.last_burnt_date, epi_data.end_date)
     )
 
     print(result)
