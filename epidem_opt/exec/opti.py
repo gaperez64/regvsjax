@@ -5,7 +5,7 @@ import jax
 from jaxopt import GradientDescent
 
 from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
-from epidem_opt.src.simulator import simulate_cost
+from epidem_opt.src.simulator import simulate_cost, date_to_ordinal_set
 from epidem_opt.src.vacc_programs import read_cube
 
 
@@ -75,8 +75,12 @@ def main():
         init_params=initial_vacc_program,
         epi_data=JaxFriendlyEpiData.create(epi_data),
         state=start_state,
-        start_date=epi_data.last_burnt_date,  # TODO: these dates should be replaced by integers.
-        end_date=epi_data.end_date
+        start_date=epi_data.last_burnt_date.toordinal(),  # TODO: these dates should be replaced by integers.
+        end_date=epi_data.end_date.toordinal(),
+        vacc_dates=date_to_ordinal_set(epi_data.vacc_date, epi_data.last_burnt_date, epi_data.end_date),
+        peak_dates=date_to_ordinal_set(epi_data.peak_date, epi_data.last_burnt_date, epi_data.end_date),
+        seed_dates=date_to_ordinal_set(epi_data.seed_date, epi_data.last_burnt_date, epi_data.end_date),
+        birth_dates=date_to_ordinal_set(epi_data.birthday, epi_data.last_burnt_date, epi_data.end_date)
     )
 
     print(result)

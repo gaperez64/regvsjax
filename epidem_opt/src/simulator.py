@@ -5,7 +5,6 @@ from jax import jit
 
 from epidem_opt.src import epistep
 from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
-from epidem_opt.src.jax_date.jax_date import add_days_to_date
 
 
 def check_pop_conservation(old, new):
