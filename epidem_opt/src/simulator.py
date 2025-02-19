@@ -17,43 +17,40 @@ def check_pop_conservation(old, new):
     # TODO: check that this matches within 20 units.
 
 
-def simulate_trajectories(epi_data: EpiData,
-                          # state_date: date,
-                          begin_date: tuple[int, int, int],
-                          start_state,
-                          # end_date: date,
-                          end_date: tuple[int, int, int],
-                          # drop_before: date=date(year=2000, month=1, day=1)):
-                          drop_before: tuple[int, int, int] = (2000, 1, 1)
-                          ):
+def date_to_ordinal_set(periodic_date: tuple[int, int], begin_date: date, end_date: date):
+    """
+        Return a set that contains all dates between begin_date and end_date, inclusive, that has the same
+        day and month als the specified tuple (month, day).
 
-    begin_date = date(*begin_date)
-    end_date = date(*end_date)
-    drop_before = date(*drop_before)
-
-    begin_date_int = (begin_date - epi_data.start_date).days
-    end_date_int = (end_date - epi_data.start_date).days
-    drop_before_int = (drop_before - epi_data.start_date).days
-
-    vacc_dates: set[int] = set()
-    birth_dates: set[int] = set()
-    seed_dates: set[int] = set()
-    peak_dates: set[int] = set()
-
+        Each date in the set is specified as an ordinal: datetime.toordinal().
+    """
+    # month, day
+    ordinal_set: set[int] = set()
     cur_date_temp = begin_date
-    i = 0
     while cur_date_temp <= end_date:
-        if (cur_date_temp.month, cur_date_temp.day) == epi_data.peak_date:
-            peak_dates.add(i)
-        if (cur_date_temp.month, cur_date_temp.day) == epi_data.vacc_date:
-            vacc_dates.add(i)
-        if (cur_date_temp.month, cur_date_temp.day) == epi_data.seed_date:
-            seed_dates.add(i)
-        if (cur_date_temp.month, cur_date_temp.day) == epi_data.birthday:
-            birth_dates.add(i)
-
+        if (cur_date_temp.month, cur_date_temp.day) == periodic_date:
+            ordinal_set.add(cur_date_temp.toordinal())
         cur_date_temp = cur_date_temp + timedelta(days=1)
-        i += 1
+    return ordinal_set
+
+
+def simulate_trajectories(epi_data: EpiData,
+                          begin_date: date,
+                          start_state,
+                          end_date: date,
+                          drop_before: date=date(year=2000, month=1, day=1)):
+    """
+        Wrapper that accepts datetime objects.
+    """
+
+    begin_date_int = begin_date.toordinal()
+    end_date_int = end_date.toordinal()
+    drop_before_int = drop_before.toordinal()
+
+    vacc_dates = date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date)
+    peak_dates = date_to_ordinal_set(epi_data.peak_date, begin_date, end_date)
+    seed_dates = date_to_ordinal_set(epi_data.seed_date, begin_date, end_date)
+    birth_dates = date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
 
     return _internal_sim_(epi_data=epi_data, begin_date=begin_date_int, end_date=end_date_int,
                           vacc_dates=vacc_dates, birth_dates=birth_dates, seed_dates=seed_dates, peak_dates=peak_dates,
@@ -74,6 +71,8 @@ def _internal_sim_(epi_data: EpiData,
         Function that simulates the epidemic and returns the trajectories.
 
         This is used for the "burn-in" step.
+
+        Simulator loop that only accepts integers as dates.
 
         TODO: asserts that the days align properly?
     """
@@ -134,7 +133,12 @@ def _internal_sim_(epi_data: EpiData,
     return trajectories
 
 
-def simulate_cost(vacc_rates, epi_data, state, start_date, end_date):
+def simulate_cost(vacc_rates, epi_data, state, start_date, end_date,
+                  vacc_dates: set[int],
+                  birth_dates: set[int],
+                  seed_dates: set[int],
+                  peak_dates: set[int],
+                  ):
     """
         Function that simulates the epidemic and computes all the costs, including the QALY cost.
 
@@ -146,13 +150,15 @@ def simulate_cost(vacc_rates, epi_data, state, start_date, end_date):
     while cur_date <= end_date:
 
         # STEP 1: reset flu cycle
-        if (cur_date.month, cur_date.day) == epi_data.peak_date:
+        # if (cur_date.month, cur_date.day) == epi_data.peak_date:
+        if cur_date in peak_dates:
             (S, E, Inf, R, V, day) = state
             day = 0
             state = (S, E, Inf, R, V, day)
 
         # STEP 2: add disease
-        if (cur_date.month, cur_date.day) == epi_data.seed_date:
+        # if (cur_date.month, cur_date.day) == epi_data.seed_date:
+        if cur_date in seed_dates:
             state = epistep.seedInfs(epi_data, *state)
 
         # STEP 3: apply step
@@ -161,7 +167,8 @@ def simulate_cost(vacc_rates, epi_data, state, start_date, end_date):
          amb_qaly, nomed_qaly, hosp_qaly, lifeyrs_lost) = epistep.step(epi_data, *state)
 
         # STEP 4: perform vaccination
-        if (cur_date.month, cur_date.day) == epi_data.vacc_date:
+        # if (cur_date.month, cur_date.day) == epi_data.vacc_date:
+        if cur_date in vacc_dates:
             (*state, extra_vax_cost) = epistep.vaccinate(epi_data, vacc_rates, *state)
             vax_cost += extra_vax_cost
 
@@ -176,9 +183,11 @@ def simulate_cost(vacc_rates, epi_data, state, start_date, end_date):
                         lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
 
         # STEP 6: apply aging
-        if (cur_date.month, cur_date.day) == epi_data.birthday:
+        # if (cur_date.month, cur_date.day) == epi_data.birthday:
+        if cur_date in birth_dates:
             state = epistep.age(epi_data, *state)
 
-        cur_date = cur_date + timedelta(days=1)
+        # cur_date = cur_date + timedelta(days=1)
+        cur_date = cur_date + 1
     return total_cost
 

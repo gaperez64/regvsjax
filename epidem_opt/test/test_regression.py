@@ -1,5 +1,5 @@
 import pickle
-from datetime import date
+from datetime import date, timedelta
 
 import jax
 from jax import numpy as jnp
@@ -7,7 +7,7 @@ from jax import numpy as jnp
 import pandas as pd
 
 from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
-from epidem_opt.src.simulator import simulate_trajectories, simulate_cost
+from epidem_opt.src.simulator import simulate_trajectories, simulate_cost, date_to_ordinal_set
 from epidem_opt.test.conftest import get_test_root
 
 
@@ -34,15 +34,12 @@ def test_regression_against_pickled_data():
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
-    end_data = date(year=2021, month=12, day=31)
+                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
+    end_date = date(year=2021, month=12, day=31)
     actual = simulate_trajectories(epi_data=epi_data,
-                                   # state_date=epi_data.start_date,
-                                   begin_date=(epi_data.start_date.year, epi_data.start_date.month, epi_data.start_date.day),
-                                   # end_date=end_data,
-                                   end_date=(end_data.year, end_data.month, end_data.day),
-                                   # drop_before=date(year=2017, month=8, day=27),
-                                   drop_before=(2017, 8, 27),
+                                   begin_date=epi_data.start_date,
+                                   end_date=end_date,
+                                   drop_before=date(year=2017, month=8, day=27),
                                    start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
     # assert against previously stored exact output
@@ -54,6 +51,7 @@ def test_regression_against_pickled_data():
         assert len(ref_day) == len(actual_day), f"Error, different number of compartments on day {day_nr}."
         for i, (ref_compartment, actual_compartment) in enumerate(zip(ref_day, actual_day)):
             assert (ref_compartment == actual_compartment).all(), f"Error, {i}-th compartments differ on day {day_nr}."
+
 
 def _compare_compartments_(actual, expected):
     expected = jax.numpy.asarray(expected)
@@ -75,13 +73,12 @@ def test_regression_against_regina_data():
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
+                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
     end_date = date(year=2021, month=12, day=31)
     actual = simulate_trajectories(epi_data=epi_data,
-                                   begin_date=(epi_data.start_date.year, epi_data.start_date.month, epi_data.start_date.day),
-                                   end_date=(end_date.year, end_date.month, end_date.day),
-                                   # drop_before=date(year=2017, month=8, day=27),
-                                   drop_before=(2017, 8, 27),
+                                   begin_date=epi_data.start_date,
+                                   end_date=end_date,
+                                   drop_before=date(year=2017, month=8, day=27),
                                    start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
     df = pd.read_csv(reference_csv_path, header=None)
@@ -105,10 +102,21 @@ def test_regression_against_expected_cost():
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
+                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
 
-    cost = simulate_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.start_date,
-                         epi_data.last_burnt_date)
+    begin_date = epi_data.start_date
+    end_date = epi_data.last_burnt_date
+    cost = simulate_cost(
+        epi_data.vacc_rates,
+        epi_data,
+        epi_data.start_state(),
+        begin_date.toordinal(),
+        end_date.toordinal(),
+        vacc_dates=date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
+        peak_dates=date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
+        seed_dates=date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),
+        birth_dates=date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
+    )
     assert cost == 2774434816.0
 
 
@@ -120,11 +128,23 @@ def test_regression_against_expected_gradient():
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
+                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
 
     grad_cost = jax.value_and_grad(simulate_cost)
-    actual_cost, actual_grad = grad_cost(epi_data.vacc_rates, epi_data, epi_data.start_state(), epi_data.start_date,
-                                         epi_data.last_burnt_date)
+
+    begin_date = epi_data.start_date
+    end_date = epi_data.last_burnt_date
+    actual_cost, actual_grad = grad_cost(
+        epi_data.vacc_rates,
+        epi_data,
+        epi_data.start_state(),
+        begin_date.toordinal(),
+        end_date.toordinal(),
+        vacc_dates=date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
+        peak_dates=date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
+        seed_dates=date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),
+        birth_dates=date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
+    )
     assert actual_cost == 2774434816.0
 
     with open(reference_pickle_path, 'rb') as ref_grad_file:
