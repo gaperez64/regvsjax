@@ -55,7 +55,7 @@ def main():
         qaly_data_path=experiment_data / "qaly_data",
         vaccination_rates_path=experiment_data / "vaccination_rates"
     )
-    trajectory = simulate_trajectories(epi_data=epi_data, state_date=epi_data.start_date,
+    trajectory = simulate_trajectories(epi_data=epi_data, begin_date=epi_data.start_date,
                                        end_date=epi_data.last_burnt_date,
                                        start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 

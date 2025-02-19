@@ -38,7 +38,7 @@ def test_regression_against_pickled_data():
     end_data = date(year=2021, month=12, day=31)
     actual = simulate_trajectories(epi_data=epi_data,
                                    # state_date=epi_data.start_date,
-                                   state_date=(epi_data.start_date.year, epi_data.start_date.month, epi_data.start_date.day),
+                                   begin_date=(epi_data.start_date.year, epi_data.start_date.month, epi_data.start_date.day),
                                    # end_date=end_data,
                                    end_date=(end_data.year, end_data.month, end_data.day),
                                    # drop_before=date(year=2017, month=8, day=27),
@@ -78,7 +78,7 @@ def test_regression_against_regina_data():
                        vaccination_rates_path=regina_reference_data_folder / "vaccination_rates",)
     end_date = date(year=2021, month=12, day=31)
     actual = simulate_trajectories(epi_data=epi_data,
-                                   state_date=(epi_data.start_date.year, epi_data.start_date.month, epi_data.start_date.day),
+                                   begin_date=(epi_data.start_date.year, epi_data.start_date.month, epi_data.start_date.day),
                                    end_date=(end_date.year, end_date.month, end_date.day),
                                    # drop_before=date(year=2017, month=8, day=27),
                                    drop_before=(2017, 8, 27),
