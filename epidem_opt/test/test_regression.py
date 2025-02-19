@@ -108,10 +108,10 @@ def test_regression_against_expected_cost():
     end_date = epi_data.last_burnt_date
     cost = simulate_cost(
         epi_data.vacc_rates,
-        epi_data,
-        epi_data.start_state(),
-        begin_date.toordinal(),
-        end_date.toordinal(),
+        epi_data=epi_data,
+        epi_state=epi_data.start_state(),
+        start_date=begin_date.toordinal(),
+        end_date=end_date.toordinal(),
         vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
         peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
         seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),
@@ -136,10 +136,10 @@ def test_regression_against_expected_gradient():
     end_date = epi_data.last_burnt_date
     actual_cost, actual_grad = grad_cost(
         epi_data.vacc_rates,
-        epi_data,
-        epi_data.start_state(),
-        begin_date.toordinal(),
-        end_date.toordinal(),
+        epi_data=epi_data,
+        epi_state=epi_data.start_state(),
+        start_date=begin_date.toordinal(),
+        end_date=end_date.toordinal(),
         vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
         peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
         seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),

@@ -73,13 +73,13 @@ def main():
     result = solver.run(
         init_params=initial_vacc_program,
         epi_data=JaxFriendlyEpiData.create(epi_data),
-        state=start_state,
-        start_date=epi_data.last_burnt_date.toordinal(),  # TODO: these dates should be replaced by integers.
+        epi_state=start_state,
+        start_date=epi_data.last_burnt_date.toordinal(),
         end_date=epi_data.end_date.toordinal(),
-        vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date, epi_data.last_burnt_date, epi_data.end_date),
-        peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date, epi_data.last_burnt_date, epi_data.end_date),
-        seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date, epi_data.last_burnt_date, epi_data.end_date),
-        birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday, epi_data.last_burnt_date, epi_data.end_date)
+        vacc_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.vacc_date, epi_data.last_burnt_date, epi_data.end_date)),
+        peak_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.peak_date, epi_data.last_burnt_date, epi_data.end_date)),
+        seed_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.seed_date, epi_data.last_burnt_date, epi_data.end_date)),
+        birth_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.birthday, epi_data.last_burnt_date, epi_data.end_date))
     )
 
     print(result)
