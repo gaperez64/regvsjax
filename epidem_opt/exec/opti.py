@@ -69,8 +69,7 @@ def main():
     # init-params is the vaccination program from which we start.
     # then, we pass additional params (epi_data, start_state, end_date)
 
-    # TODO: make epidata a JAX type.
-    #   - use "flax"
+    # TODO: the ordinal set could be a JIT-compiled predicate
     result = solver.run(
         init_params=initial_vacc_program,
         epi_data=JaxFriendlyEpiData.create(epi_data),
