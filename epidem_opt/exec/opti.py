@@ -1,4 +1,5 @@
 import argparse
+import pickle
 from pathlib import Path
 
 import jax
@@ -41,6 +42,7 @@ def main():
     )
 
     # construct derivative. This will differential w.r.t. the vaccination rates.
+    # value_and_grad_func = jax.value_and_grad(jit_simulate)
     value_and_grad_func = jax.value_and_grad(simulate_cost)
 
     # we start the vaccination simulation with the output of the burn-in step
@@ -55,12 +57,60 @@ def main():
     # cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, start_state, start_date, epi_data.end_date)
 
     # read vaccination programs over which we optimise
-    cube = read_cube(Path(experiment_data / "vaccination_box.csv"))
+    # cube = read_cube(Path(experiment_data / "vaccination_box.csv"))
 
     # sample an initial vaccination program
-    initial_vacc_program = cube.sample()
+    # vacc_program = cube.sample()
+    # vacc_program = epi_data.vacc_rates
 
-    solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
+    # TODO: pickle the resulting program and grad, and store in a "debug" folder
+
+    vacc_program, grad = debug_program()
+
+    cost_2, grad_2 = value_and_grad_func(
+        vacc_program,
+        epi_data=epi_data,
+        epi_state=start_state,
+        start_date=epi_data.last_burnt_date.toordinal(),
+        end_date=epi_data.end_date.toordinal(),
+        vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
+                                                      epi_data.last_burnt_date,
+                                                      epi_data.end_date),
+        peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
+                                                      epi_data.last_burnt_date,
+                                                      epi_data.end_date),
+        seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
+                                                      epi_data.last_burnt_date,
+                                                      epi_data.end_date),
+        birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
+                                                       epi_data.last_burnt_date,
+                                                       epi_data.end_date)
+    )
+
+    print(cost_2)
+
+    # for i in range(100):
+    #     cost, grad = value_and_grad_func(vacc_program,
+    #         epi_data = epi_data,
+    #         epi_state=start_state,
+    #         start_date=epi_data.last_burnt_date.toordinal(),
+    #         end_date=epi_data.end_date.toordinal(),
+    #         vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date, epi_data.last_burnt_date, epi_data.end_date),
+    #         peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date, epi_data.last_burnt_date, epi_data.end_date),
+    #         seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date, epi_data.last_burnt_date, epi_data.end_date),
+    #         birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday, epi_data.last_burnt_date, epi_data.end_date)
+    #     )
+    #     vacc_program -= 0.0005 * grad
+    #
+    #     print("COST", cost)
+    #
+    #     with open(f"./working_dir/debug/vacc_program_{i}", "wb") as f:
+    #         pickle.dump(vacc_program, f)
+    #
+    #     with open(f"./working_dir/debug/grad_{i}", "wb") as f:
+    #         pickle.dump(grad, f)
+
+    # solver = GradientDescent(fun=value_and_grad_func, value_and_grad=True, maxiter=100)
 
     # NOTE: the following two functions can be useful here:
     # "jax.lax.cond"
@@ -70,21 +120,29 @@ def main():
     # then, we pass additional params (epi_data, start_state, end_date)
 
     # TODO: the ordinal set could be a JIT-compiled predicate
-    result = solver.run(
-        init_params=initial_vacc_program,
-        epi_data=JaxFriendlyEpiData.create(epi_data),
-        epi_state=start_state,
-        start_date=epi_data.last_burnt_date.toordinal(),
-        end_date=epi_data.end_date.toordinal(),
-        vacc_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.vacc_date, epi_data.last_burnt_date, epi_data.end_date)),
-        peak_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.peak_date, epi_data.last_burnt_date, epi_data.end_date)),
-        seed_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.seed_date, epi_data.last_burnt_date, epi_data.end_date)),
-        birth_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.birthday, epi_data.last_burnt_date, epi_data.end_date))
-    )
+    # result = solver.run(
+    #     init_params=initial_vacc_program,
+    #     epi_data=JaxFriendlyEpiData.create(epi_data),
+    #     epi_state=start_state,
+    #     start_date=epi_data.last_burnt_date.toordinal(),
+    #     end_date=epi_data.end_date.toordinal(),
+    #     vacc_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.vacc_date, epi_data.last_burnt_date, epi_data.end_date)),
+    #     peak_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.peak_date, epi_data.last_burnt_date, epi_data.end_date)),
+    #     seed_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.seed_date, epi_data.last_burnt_date, epi_data.end_date)),
+    #     birth_dates=jax.tree_util.Partial(lambda x: x in date_to_ordinal_set(epi_data.birthday, epi_data.last_burnt_date, epi_data.end_date))
+    # )
 
-    print(result)
+    # print(result)
 
-    # TODO: solver.run().params
+
+
+def debug_program():
+    with open("./working_dir/debug/vacc_program_0", "rb") as f:
+        vacc_program = pickle.load(f)
+    with open("./working_dir/debug/grad_0", "rb") as f:
+        grad = pickle.load(f)
+
+    return vacc_program, grad
 
 
 if __name__ == "__main__":

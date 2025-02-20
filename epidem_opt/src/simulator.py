@@ -2,7 +2,6 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Callable
 
-from jax import jit
 
 from epidem_opt.src import epistep
 from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
@@ -133,7 +132,6 @@ def _internal_sim_(epi_data: EpiData,
     return trajectories
 
 
-@jit
 def simulate_cost(vacc_rates,
                   epi_data: JaxFriendlyEpiData,
                   epi_state,
@@ -183,6 +181,7 @@ def simulate_cost(vacc_rates,
             vax_cost += extra_vax_cost
 
         # STEP 5: register current values
+        print("BEFORE", cur_date, total_cost)
         total_cost += ((amb_cost.sum() +
                         nomed_cost.sum() +
                         hosp_cost.sum() +
@@ -191,6 +190,8 @@ def simulate_cost(vacc_rates,
                         nomed_qaly.sum() +
                         hosp_qaly.sum() +
                         lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
+        print("AFTER", cur_date, total_cost)
+        print("--")
 
         # STEP 6: apply aging
         # if (cur_date.month, cur_date.day) == epi_data.birthday:
