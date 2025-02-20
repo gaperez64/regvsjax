@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Callable
 
+import jax
 
 from epidem_opt.src import epistep
 from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
@@ -158,6 +159,7 @@ def simulate_cost(vacc_rates,
         # if (cur_date.month, cur_date.day) == epi_data.peak_date:
         # if cur_date in peak_dates:
         if peak_dates(cur_date):
+            jax.debug.print("peak date")
             (S, E, Inf, R, V, day) = epi_state
             day = 0
             epi_state = (S, E, Inf, R, V, day)
@@ -166,6 +168,7 @@ def simulate_cost(vacc_rates,
         # if (cur_date.month, cur_date.day) == epi_data.seed_date:
         # if cur_date in seed_dates:
         if seed_dates(cur_date):
+            jax.debug.print("seed date")
             epi_state = epistep.seedInfs(epi_data, *epi_state)
 
         # STEP 3: apply step
@@ -177,6 +180,7 @@ def simulate_cost(vacc_rates,
         # if (cur_date.month, cur_date.day) == epi_data.vacc_date:
         # if cur_date in vacc_dates:
         if vacc_dates(cur_date):
+            jax.debug.print("vacc date")
             (*epi_state, extra_vax_cost) = epistep.vaccinate(epi_data, vacc_rates, *epi_state)
             vax_cost += extra_vax_cost
 
@@ -191,12 +195,14 @@ def simulate_cost(vacc_rates,
                         hosp_qaly.sum() +
                         lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
         print("AFTER", cur_date, total_cost)
+        jax.debug.print("currrent cost {x}", x=total_cost)
         print("--")
 
         # STEP 6: apply aging
         # if (cur_date.month, cur_date.day) == epi_data.birthday:
         # if cur_date in birth_dates:
         if birth_dates(cur_date):
+            jax.debug.print("birth date")
             epi_state = epistep.age(epi_data, *epi_state)
 
         # cur_date = cur_date + timedelta(days=1)
