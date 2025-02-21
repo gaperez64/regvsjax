@@ -5,6 +5,7 @@ from pathlib import Path
 
 import jax
 from jaxopt import GradientDescent
+import jax.numpy as jnp
 
 from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
 from epidem_opt.src.simulator import simulate_cost, date_to_ordinal_set, simulate_trajectories
@@ -42,8 +43,7 @@ def main():
         vaccination_rates_path=experiment_data / "vaccination_rates"
     )
 
-    # construct derivative. This will differential w.r.t. the vaccination rates.
-    # value_and_grad_func = jax.value_and_grad(jit_simulate)
+    # construct derivative. This will differentiate w.r.t. the vaccination rates.
     value_and_grad_func = jax.value_and_grad(simulate_cost)
 
     # we start the vaccination simulation with the output of the burn-in step
@@ -53,14 +53,10 @@ def main():
         saved_date=epi_data.last_burnt_date
     )  # (S, E, I, R, V, day) with 100 age groups.
 
-    # cost, gradient = value_and_grad_func(epi_data.vacc_rates, epi_data, start_state, start_date, epi_data.end_date)
 
-    # read vaccination programs over which we optimise
-    # cube = read_cube(Path(experiment_data / "vaccination_box.csv"))
+    maxx_vacc = jnp.ones(shape=(100,))
+    anti_vacc = jnp.zeros(shape=(100,))
 
-    # sample an initial vaccination program
-    # vacc_program = cube.sample()
-    # vacc_program = epi_data.vacc_rates
 
     vacc_program, grad = debug_program()
 
@@ -71,8 +67,31 @@ def main():
     # We get NaN after day 46
     end_date = start_date + timedelta(days=46)  # custom end date to find day at which things go wrong
 
-    # debug prints are in place, and will print the cost at every state
-    cost_2, grad_2 = value_and_grad_func(
+    # # debug prints are in place, and will print the cost at every state
+    # cost_2, grad_2 = value_and_grad_func(
+    #     vacc_program,
+    #     epi_data=epi_data,
+    #     epi_state=start_state,
+    #     start_date=start_date.toordinal(),
+    #     end_date=end_date.toordinal(),
+    #     vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
+    #                                                   epi_data.last_burnt_date,
+    #                                                   epi_data.end_date),
+    #     peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
+    #                                                   epi_data.last_burnt_date,
+    #                                                   epi_data.end_date),
+    #     seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
+    #                                                   epi_data.last_burnt_date,
+    #                                                   epi_data.end_date),
+    #     birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
+    #                                                    epi_data.last_burnt_date,
+    #                                                    epi_data.end_date)
+    # )
+    #
+    # print(cost_2)
+    # print(grad_2)
+
+    cost_3 = simulate_cost(
         vacc_program,
         epi_data=epi_data,
         epi_state=start_state,
@@ -91,9 +110,7 @@ def main():
                                                        epi_data.last_burnt_date,
                                                        epi_data.end_date)
     )
-
-    print(cost_2)
-    print(grad_2)
+    print(cost_3)
 
 
 def debug_program():

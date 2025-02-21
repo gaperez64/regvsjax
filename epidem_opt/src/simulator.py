@@ -185,16 +185,18 @@ def simulate_cost(vacc_rates,
             vax_cost += extra_vax_cost
 
         # STEP 5: register current values
-        print("BEFORE", cur_date, total_cost)
-        total_cost += ((amb_cost.sum() +
+        print("BEFORE", cur_date, total_cost, type(total_cost))
+        diff_cost = int(((amb_cost.sum() +
                         nomed_cost.sum() +
                         hosp_cost.sum() +
                         vax_cost.sum()) +
                        (amb_qaly.sum() +
                         nomed_qaly.sum() +
                         hosp_qaly.sum() +
-                        lifeyrs_lost.sum()) * 35000)  # TODO: is this constant the QALY constant?
-        print("AFTER", cur_date, total_cost)
+                        lifeyrs_lost.sum()) * 35000))
+        print("DIFFERENCE", cur_date, diff_cost, type(diff_cost))
+        total_cost += diff_cost  # TODO: is this constant the QALY constant?
+        print("AFTER", cur_date, total_cost, type(total_cost))
         jax.debug.print("currrent cost {x}", x=total_cost)
         print("--")
 
