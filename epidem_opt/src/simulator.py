@@ -197,7 +197,7 @@ def simulate_cost(vacc_rates,
                         nomed_qaly.sum() +
                         hosp_qaly.sum() +
                         lifeyrs_lost.sum()) * 35000))
-        print("DIFFERENCE", cur_date, diff_cost, type(diff_cost))
+        print("DIFFERENCE (date, additional cost, data type)", cur_date, diff_cost, type(diff_cost))
         total_cost += diff_cost  # TODO: is this constant the QALY constant?
         print("AFTER", cur_date, total_cost, type(total_cost))
         # jax.debug.print("currrent cost {x}", x=total_cost)
