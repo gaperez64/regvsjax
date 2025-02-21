@@ -197,6 +197,25 @@ def simulate_cost(vacc_rates,
                         nomed_qaly.sum() +
                         hosp_qaly.sum() +
                         lifeyrs_lost.sum()) * 35000))
+
+        if diff_cost >  13049654503:
+            print("\t econ", (amb_cost.sum() +
+                        nomed_cost.sum() +
+                        hosp_cost.sum() +
+                        vax_cost.sum()))
+            print("\t\t", amb_cost.sum())
+            print("\t\t", nomed_cost.sum())
+            print("\t\t", hosp_cost.sum())
+            print("\t\t", vax_cost.sum())
+            print("\t qaly", (amb_qaly.sum() +
+                        nomed_qaly.sum() +
+                        hosp_qaly.sum() +
+                        lifeyrs_lost.sum()) * 35000)
+            print("\t\t", amb_qaly.sum())
+            print("\t\t", nomed_qaly.sum())
+            print("\t\t", hosp_qaly.sum())
+            print("\t\t", lifeyrs_lost.sum())
+
         print("DIFFERENCE (date, additional cost, data type)", cur_date, diff_cost, type(diff_cost))
         total_cost += diff_cost  # TODO: is this constant the QALY constant?
         print("AFTER", cur_date, total_cost, type(total_cost))
