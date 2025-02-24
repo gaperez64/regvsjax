@@ -143,7 +143,8 @@ class EpiData:
             tot_pop = S.sum() + E.sum() + I.sum() + R.sum() + V.sum()
 
             # Sanity check: the population of the file we read is the same as at the beginning
-            # assert tot_pop == self.tot_pop  # TODO: check
+            # assert tot_pop == self.tot_pop  # TODO: re-implement this by checking element-wise that the deviation
+            #   is less than 20.
             start_date = saved_date
 
         # Special computation for day

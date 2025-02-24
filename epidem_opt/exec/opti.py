@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import jax
+import pandas as pd
 from jaxopt import GradientDescent
 import jax.numpy as jnp
 
@@ -47,50 +48,38 @@ def main():
     value_and_grad_func = jax.value_and_grad(simulate_cost)
 
     # we start the vaccination simulation with the output of the burn-in step
-    # TODO: some assert is failing here...
     start_state = epi_data.start_state(
         saved_state_file=burn_in_file,
         saved_date=epi_data.last_burnt_date
     )  # (S, E, I, R, V, day) with 100 age groups.
 
+    # maxx_vacc = jnp.ones(shape=(100,))
+    # anti_vacc = jnp.zeros(shape=(100,))
 
-    maxx_vacc = jnp.ones(shape=(100,))
-    anti_vacc = jnp.zeros(shape=(100,))
-
-
-    vacc_program, grad = debug_program()
-
-
+    bugged_vacc_program, grad = get_debug_vacc_program()
 
     start_date = epi_data.last_burnt_date
-    # end_date = epi_data.end_date.toordinal()
+    end_date = epi_data.end_date
+
     # We get NaN after day 46
-    end_date = start_date + timedelta(days=46)  # custom end date to find day at which things go wrong
+    # end_date = start_date + timedelta(days=46)  # custom end date to find day at which things go wrong
 
-    # # debug prints are in place, and will print the cost at every state
-    # cost_2, grad_2 = value_and_grad_func(
-    #     vacc_program,
-    #     epi_data=epi_data,
-    #     epi_state=start_state,
-    #     start_date=start_date.toordinal(),
-    #     end_date=end_date.toordinal(),
-    #     vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
-    #                                                   epi_data.last_burnt_date,
-    #                                                   epi_data.end_date),
-    #     peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
-    #                                                   epi_data.last_burnt_date,
-    #                                                   epi_data.end_date),
-    #     seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
-    #                                                   epi_data.last_burnt_date,
-    #                                                   epi_data.end_date),
-    #     birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
-    #                                                    epi_data.last_burnt_date,
-    #                                                    epi_data.end_date)
-    # )
-    #
-    # print(cost_2)
-    # print(grad_2)
+    # _debug_run_sim_no_jax_(bugged_vacc_program, epi_data, start_state, start_date, end_date)
+    _write_vacc_program_(vacc_program=bugged_vacc_program,
+                         baseline_file=Path("./experiment_data/vaccination_rates/program_baseline.csv"),
+                         output_path=Path("./working_dir/bugged_program.csv"))
 
+
+def _gradient_descent_():
+    pass
+
+
+def _debug_run_sim_no_jax_(vacc_program=None, epi_data=None, start_state=None, start_date=None, end_date=None):
+    """
+        Compute the cost of the vaccination program without touching any JAX functionality.
+
+        Something seems to go wrong after the vaccination day.
+    """
     cost_3 = simulate_cost(
         vacc_program,
         epi_data=epi_data,
@@ -113,13 +102,21 @@ def main():
     print(cost_3)
 
 
-def debug_program():
+def get_debug_vacc_program():
     with open("./working_dir/debug/vacc_program_0", "rb") as f:
         vacc_program = pickle.load(f)
     with open("./working_dir/debug/grad_0", "rb") as f:
         grad = pickle.load(f)
 
     return vacc_program, grad
+
+
+def _write_vacc_program_(vacc_program, baseline_file: Path, output_path: Path):
+    df_baseline = pd.read_csv(baseline_file)
+    # Spelling error is intentional
+    assert "Coverate rate" in df_baseline.columns
+    df_baseline["Coverate rate"] = vacc_program
+    df_baseline.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":

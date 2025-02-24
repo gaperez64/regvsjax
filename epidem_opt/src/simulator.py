@@ -147,9 +147,6 @@ def simulate_cost(vacc_rates,
 
         "state" is the initial state.
         This function is used for the gradient descent step. Do NOT add any state-modifying behaviour or I/O.
-
-        TODO: investigate: do we need to use the JAX API to replace all if-statements and while-loop.
-
     """
     cur_date = start_date
     total_cost = 0
@@ -160,7 +157,7 @@ def simulate_cost(vacc_rates,
         # if cur_date in peak_dates:
         if peak_dates(cur_date):
             # jax.debug.print("peak date")
-            print("peak date")
+            # print("peak date")
             (S, E, Inf, R, V, day) = epi_state
             day = 0
             epi_state = (S, E, Inf, R, V, day)
@@ -170,7 +167,7 @@ def simulate_cost(vacc_rates,
         # if cur_date in seed_dates:
         if seed_dates(cur_date):
             # jax.debug.print("seed date")
-            print("seed date")
+            # print("seed date")
             epi_state = epistep.seedInfs(epi_data, *epi_state)
 
         # STEP 3: apply step
@@ -183,51 +180,54 @@ def simulate_cost(vacc_rates,
         # if cur_date in vacc_dates:
         if vacc_dates(cur_date):
             # jax.debug.print("vacc date")
-            print("vacc date")
+            # print("vacc date")
             (*epi_state, extra_vax_cost) = epistep.vaccinate(epi_data, vacc_rates, *epi_state)
             vax_cost += extra_vax_cost
 
         # STEP 5: register current values
-        print("BEFORE", cur_date, total_cost, type(total_cost))
-        diff_cost = int(((amb_cost.sum() +
+        # print("BEFORE", cur_date, total_cost, type(total_cost))
+        # diff_cost = int(
+        diff_cost = (
+            ((amb_cost.sum() +
                         nomed_cost.sum() +
                         hosp_cost.sum() +
                         vax_cost.sum()) +
                        (amb_qaly.sum() +
                         nomed_qaly.sum() +
                         hosp_qaly.sum() +
-                        lifeyrs_lost.sum()) * 35000))
-
-        if diff_cost >  13049654503:
-            print("\t econ", (amb_cost.sum() +
-                        nomed_cost.sum() +
-                        hosp_cost.sum() +
-                        vax_cost.sum()))
-            print("\t\t", amb_cost.sum())
-            print("\t\t", nomed_cost.sum())
-            print("\t\t", hosp_cost.sum())
-            print("\t\t", vax_cost.sum())
-            print("\t qaly", (amb_qaly.sum() +
-                        nomed_qaly.sum() +
-                        hosp_qaly.sum() +
                         lifeyrs_lost.sum()) * 35000)
-            print("\t\t", amb_qaly.sum())
-            print("\t\t", nomed_qaly.sum())
-            print("\t\t", hosp_qaly.sum())
-            print("\t\t", lifeyrs_lost.sum())
+        )
 
-        print("DIFFERENCE (date, additional cost, data type)", cur_date, diff_cost, type(diff_cost))
+        # if diff_cost >  13049654503:
+            # print("\t econ", (amb_cost.sum() +
+            #             nomed_cost.sum() +
+            #             hosp_cost.sum() +
+            #             vax_cost.sum()))
+            # print("\t\t", amb_cost.sum())
+            # print("\t\t", nomed_cost.sum())
+            # print("\t\t", hosp_cost.sum())
+            # print("\t\t", vax_cost.sum())
+            # print("\t qaly", (amb_qaly.sum() +
+            #             nomed_qaly.sum() +
+            #             hosp_qaly.sum() +
+            #             lifeyrs_lost.sum()) * 35000)
+            # print("\t\t", amb_qaly.sum())
+            # print("\t\t", nomed_qaly.sum())
+            # print("\t\t", hosp_qaly.sum())
+            # print("\t\t", lifeyrs_lost.sum())
+
+        # print("DIFFERENCE (date, additional cost, data type)", cur_date, diff_cost, type(diff_cost))
         total_cost += diff_cost  # TODO: is this constant the QALY constant?
-        print("AFTER", cur_date, total_cost, type(total_cost))
+        # print("AFTER", cur_date, total_cost, type(total_cost))
         # jax.debug.print("currrent cost {x}", x=total_cost)
-        print("--")
+        # print("--")
 
         # STEP 6: apply aging
         # if (cur_date.month, cur_date.day) == epi_data.birthday:
         # if cur_date in birth_dates:
         if birth_dates(cur_date):
             # jax.debug.print("birth date")
-            print("birth date")
+            # print("birth date")
             epi_state = epistep.age(epi_data, *epi_state)
 
         # cur_date = cur_date + timedelta(days=1)
