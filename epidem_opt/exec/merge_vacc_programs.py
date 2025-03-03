@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from epidem_opt.src.vacc_programs import get_all_vacc_programs
+from epidem_opt.src.vacc_programs import get_all_vacc_programs_from_dir
 
 
 def main():
@@ -29,7 +29,7 @@ def main():
         print("Error: Output file already exists.")
         exit(1)
 
-    vacc_programs = get_all_vacc_programs(vacc_dir=vacc_dir)
+    vacc_programs = get_all_vacc_programs_from_dir(vacc_dir=vacc_dir)
 
     df_output = pd.DataFrame(vacc_programs)
 

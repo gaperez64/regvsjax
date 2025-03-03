@@ -127,9 +127,10 @@ def read_min_max_rates(vacc_dir: Path) -> dict:
     return data
 
 
-def get_all_vacc_programs(vacc_dir: Path) -> dict[str, list[float]]:
+def get_all_vacc_programs_from_dir(vacc_dir: Path) -> dict[str, list[float]]:
     """
-        Reads
+        Reads a directory of CSV files with vaccination programs and returns a dict that maps
+        the name of the vaccination program onto the rates for each age group {0, ..., 99}.
     """
     programs = dict()
     for vacc_program_path in vacc_dir.glob("*.csv"):
@@ -156,3 +157,7 @@ def get_all_vacc_programs(vacc_dir: Path) -> dict[str, list[float]]:
         programs[vacc_program_name] = rates
 
     return programs
+
+
+def get_all_vaccination_programs_from_file(vacc_programs: Path):
+    pass
