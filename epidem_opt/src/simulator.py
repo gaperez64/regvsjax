@@ -1,8 +1,6 @@
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Callable
 
-import jax
 
 from epidem_opt.src import epistep
 from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData

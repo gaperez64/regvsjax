@@ -11,7 +11,7 @@ jax-metal==0.1.1
 jaxlib==0.5.0
 jaxopt==0.8.3
 kiwisolver==1.4.5
-matplotlib==3.10.0
+matplotlib~=3.8.4
 ml-dtypes==0.4.0
 munkres==1.1.4
 numpy==2.2.2
@@ -34,3 +34,5 @@ tzdata==2024.1
 unicodedata2==16.0.0
 wheel==0.43.0
 zipp==3.21.0
+
+flax~=0.10.2
