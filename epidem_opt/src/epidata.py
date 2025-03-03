@@ -3,7 +3,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-import flax
 import jax.numpy as jnp
 import pandas as pd
 from flax import struct
