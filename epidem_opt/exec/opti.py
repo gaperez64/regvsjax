@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 import jax
+from jax import numpy as jnp
 import numpy as np
 import pandas as pd
 
@@ -57,7 +58,7 @@ def main():
     start_date = epi_data.last_burnt_date
     end_date = epi_data.end_date
 
-    def get_value(vacc_rates):
+    def get_value_and_grad(vacc_rates):
         value, grad = value_and_grad_func(
             vacc_rates,
             epi_data=epi_data,
@@ -78,67 +79,67 @@ def main():
                                                            epi_data.end_date)
         )
 
-        print(value)
+        grad_norm = (grad - jnp.min(grad)) / np.ptp(grad)
 
-        return value
+        print(grad_norm)
 
-    def get_gradient(vacc_rates):
-        value, grad = value_and_grad_func(
-            vacc_rates,
-            epi_data=epi_data,
-            epi_state=start_state,
-            start_date=start_date.toordinal(),
-            end_date=end_date.toordinal(),
-            vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
-                                                          epi_data.last_burnt_date,
-                                                          epi_data.end_date),
-            peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
-                                                          epi_data.last_burnt_date,
-                                                          epi_data.end_date),
-            seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
-                                                          epi_data.last_burnt_date,
-                                                          epi_data.end_date),
-            birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
-                                                           epi_data.last_burnt_date,
-                                                           epi_data.end_date)
-        )
+        return value, grad_norm
+    #
+    # def get_gradient(vacc_rates):
+    #     value, grad = value_and_grad_func(
+    #         vacc_rates,
+    #         epi_data=epi_data,
+    #         epi_state=start_state,
+    #         start_date=start_date.toordinal(),
+    #         end_date=end_date.toordinal(),
+    #         vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
+    #                                                       epi_data.last_burnt_date,
+    #                                                       epi_data.end_date),
+    #         peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
+    #                                                       epi_data.last_burnt_date,
+    #                                                       epi_data.end_date),
+    #         seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
+    #                                                       epi_data.last_burnt_date,
+    #                                                       epi_data.end_date),
+    #         birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
+    #                                                        epi_data.last_burnt_date,
+    #                                                        epi_data.end_date)
+    #     )
+    #
+    #     return grad
 
-        return grad
-
-
-
-    class Wrapper:
-        """
-            Reduces the number of calls to the solver
-        """
-        def __init__(self):
-            self.cache = {}
-
-        def __call__(self, x, *args):
-            fun, grad = value_and_grad_func(x,
-                                            epi_data=epi_data,
-                                            epi_state=start_state,
-                                            start_date=start_date.toordinal(),
-                                            end_date=end_date.toordinal(),
-                                            vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
-                                                                                          epi_data.last_burnt_date,
-                                                                                          epi_data.end_date),
-                                            peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
-                                                                                          epi_data.last_burnt_date,
-                                                                                          epi_data.end_date),
-                                            seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
-                                                                                          epi_data.last_burnt_date,
-                                                                                          epi_data.end_date),
-                                            birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
-                                                                                           epi_data.last_burnt_date,
-                                                                                           epi_data.end_date)
-                                            )
-            print("fun", fun)
-            self.cache['grad'] = grad
-            return fun
-
-        def jac(self, x, *args):
-            return np.array(self.cache.pop('grad'))
+    # class Wrapper:
+    #     """
+    #         Reduces the number of calls to the solver
+    #     """
+    #     def __init__(self):
+    #         self.cache = {}
+    #
+    #     def __call__(self, x, *args):
+    #         fun, grad = value_and_grad_func(x,
+    #                                         epi_data=epi_data,
+    #                                         epi_state=start_state,
+    #                                         start_date=start_date.toordinal(),
+    #                                         end_date=end_date.toordinal(),
+    #                                         vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
+    #                                                                                       epi_data.last_burnt_date,
+    #                                                                                       epi_data.end_date),
+    #                                         peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
+    #                                                                                       epi_data.last_burnt_date,
+    #                                                                                       epi_data.end_date),
+    #                                         seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
+    #                                                                                       epi_data.last_burnt_date,
+    #                                                                                       epi_data.end_date),
+    #                                         birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
+    #                                                                                        epi_data.last_burnt_date,
+    #                                                                                        epi_data.end_date)
+    #                                         )
+    #         print("fun", fun)
+    #         self.cache['grad'] = grad
+    #         return fun
+    #
+    #     def jac(self, x, *args):
+    #         return np.array(self.cache.pop('grad'))
 
     # TODO: fix bounds.
     # print(bnds)
@@ -157,10 +158,15 @@ def main():
              'fun': lambda x, ub=upper, i=factor: ub - x[i]}
         cons.append(l)
         cons.append(u)
+    np.set_printoptions(suppress=True)
 
-    wrapper = Wrapper()
+    print("INIT:", epi_data.vacc_rates)
+
+    # wrapper = Wrapper()
     # value = minimize(get_value, epi_data.vacc_rates, jac=get_gradient, bounds=bnds, options={"maxiter": 2, "disp": True}, callback=callback)
-    value = minimize(wrapper, np.array(epi_data.vacc_rates), jac=wrapper.jac, constraints=cons, options={"maxiter": 3, "disp": True}, callback=callback, method="COBYLA")
+    # value = minimize(wrapper, np.array(epi_data.vacc_rates), jac=wrapper.jac, constraints=cons, options={"maxiter": 4, "disp": True}, callback=callback, method="COBYLA")
+    value = minimize(get_value_and_grad, np.array(epi_data.vacc_rates), jac=True, constraints=cons, options={"maxiter": 4, "disp": True}, callback=callback, method="COBYLA")
+    # value = minimize(get_value_and_grad, np.array(epi_data.vacc_rates), jac=True, options={"maxiter": 4, "disp": True}, callback=callback)
     print(value)
 
 
