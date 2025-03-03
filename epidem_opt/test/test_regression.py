@@ -96,6 +96,9 @@ def test_regression_against_regina_data():
 
 
 def test_regression_against_expected_cost():
+    """
+        Test the computed cost. This does not use Jax.
+    """
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
 
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
