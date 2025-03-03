@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -38,7 +39,9 @@ class VaccinationCube:
 
 def read_cube(vacc_prog_summary: Path) -> VaccinationCube:
     """
-        Read the vaccination rates for all age groups.
+        Read the vaccination min/max-rates for all age groups.
+
+        The specified file must have three columns: age_group, min_rate, max_rate.
     """
     df = pd.read_csv(vacc_prog_summary)
 
@@ -64,3 +67,92 @@ def read_cube(vacc_prog_summary: Path) -> VaccinationCube:
         max_rates[age] = max_vaccination_rate
 
     return VaccinationCube(min_rates=min_rates, max_rates=max_rates)
+
+
+def read_min_max_rates(vacc_dir: Path) -> dict:
+    """
+        Given a directory with vaccination programs, this will the minimum and maximum rates for
+        each age group.
+
+        Resulting dict keys:
+        "Age Group", "Minimum Rate", "Maximum Rate", "CSV File Name (Minimum Rate)", "CSV File Name (Maximum Rate)"
+        Each key points to a dict that maps an age {0, 1, ..., 99} onto a value.
+    """
+    # dictionaries to store min and max rates
+    min_rates = {age: float("inf") for age in range(100)}
+    max_rates = {age: float("-inf") for age in range(100)}
+    min_files = {age: "" for age in range(100)}
+    max_files = {age: "" for age in range(100)}
+    # iterate over all CSVs
+    # for filename in os.listdir(directory):
+    for vacc_program_path in vacc_dir.glob("*.csv"):
+        # read CSV
+        df = pd.read_csv(vacc_program_path)
+
+        # extract age group and vaccination rate columns
+        try:
+            age_col = [col for col in df.columns if 'age' in col.lower()][0]
+            rate_col = [col for col in df.columns if 'rate' in col.lower()][0]
+        except IndexError as e:
+            print(f"Error when reading in vaccination program '{vacc_program_path.name}':", str(vacc_program_path))
+            print(str(e))
+            exit(1)
+
+        # sanity check: every vaccination program needs to specify rates for all the age groups
+        ages = set(int(age) for age in df[age_col].unique())
+        assert ages == set(min_rates.keys())
+
+        # iterate through each row to extract age and rate
+        for index, row in df.iterrows():
+            age = int(row[age_col])
+            vaccination_rate = float(row[rate_col])
+
+            # Obtain min rate and corresponding CSV file
+            if vaccination_rate < min_rates[age]:
+                min_rates[age] = vaccination_rate
+                min_files[age] = vacc_program_path.name
+
+            # Obtain max rate and corresponding CSV file
+            if vaccination_rate > max_rates[age]:
+                max_rates[age] = vaccination_rate
+                max_files[age] = vacc_program_path.name
+    # sanity check
+    assert set(min_files.keys()) == set(max_files.keys()) == set(min_rates.keys()) == set(max_rates.keys())
+    # create output CSV
+    data = {"Age Group": list(range(100)),
+            "Minimum Rate": [min_rates[age] for age in range(100)],
+            "Maximum Rate": [max_rates[age] for age in range(100)],
+            "CSV File Name (Minimum Rate)": [min_files[age] for age in range(100)],
+            "CSV File Name (Maximum Rate)": [max_files[age] for age in range(100)]}
+    return data
+
+
+def get_all_vacc_programs(vacc_dir: Path) -> dict[str, list[float]]:
+    """
+        Reads
+    """
+    programs = dict()
+    for vacc_program_path in vacc_dir.glob("*.csv"):
+        # read CSV
+        df = pd.read_csv(vacc_program_path)
+        vacc_program_name = vacc_program_path.stem
+
+        # extract age group and vaccination rate columns
+        try:
+            age_col = [col for col in df.columns if 'age' in col.lower()][0]
+            rate_col = [col for col in df.columns if 'rate' in col.lower()][0]
+        except IndexError as e:
+            print(f"Error when reading in vaccination program '{vacc_program_path.name}':", str(vacc_program_path))
+            print(str(e))
+            exit(1)
+
+        # Sanity check: all ages need to be correctly specified
+        ages = set(int(age) for age in df[age_col].unique())
+        assert ages == set(range(100))
+
+        rates = np.array([rate for rate in df[rate_col]])
+        assert np.all(rates >= 0) and np.all(rates <= 1)
+
+        programs[vacc_program_name] = rates
+
+    return programs

@@ -1,9 +1,9 @@
+import argparse
 from pathlib import Path
 
 import pandas as pd
-import argparse
 
-from epidem_opt.src.vacc_programs import read_min_max_rates
+from epidem_opt.src.vacc_programs import get_all_vacc_programs
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     arg_parser.add_argument("--vacc_dir", type=str, required=True,
                             help="Directory for the vaccination program.")
     arg_parser.add_argument('--output_file', type=str, required=True,
-                            help="Output file with the minimum and maximum rates per age group.")
+                            help="Output file with the merged vaccination programs.")
 
     args = arg_parser.parse_args()
 
@@ -29,9 +29,9 @@ def main():
         print("Error: Output file already exists.")
         exit(1)
 
-    data = read_min_max_rates(vacc_dir)
+    vacc_programs = get_all_vacc_programs(vacc_dir=vacc_dir)
 
-    df_output = pd.DataFrame(data)
+    df_output = pd.DataFrame(vacc_programs)
 
     # write to csv
     df_output.to_csv(output_file, index=False)
