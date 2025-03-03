@@ -1,16 +1,14 @@
 import argparse
-import pickle
-from datetime import date, timedelta
 from pathlib import Path
 
 import jax
+import numpy as np
 import pandas as pd
-from jaxopt import GradientDescent
-import jax.numpy as jnp
 
-from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
-from epidem_opt.src.simulator import simulate_cost, date_to_ordinal_set, simulate_trajectories
-from epidem_opt.src.vacc_programs import read_cube
+from epidem_opt.src.epidata import EpiData
+from epidem_opt.src.simulator import simulate_cost, date_to_ordinal_set
+
+from scipy.optimize import minimize, OptimizeResult
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -56,22 +54,114 @@ def main():
     # maxx_vacc = jnp.ones(shape=(100,))
     # anti_vacc = jnp.zeros(shape=(100,))
 
-    bugged_vacc_program, grad = get_debug_vacc_program()
-
     start_date = epi_data.last_burnt_date
     end_date = epi_data.end_date
 
-    # We get NaN after day 46
-    # end_date = start_date + timedelta(days=46)  # custom end date to find day at which things go wrong
+    def get_value(vacc_rates):
+        value, grad = value_and_grad_func(
+            vacc_rates,
+            epi_data=epi_data,
+            epi_state=start_state,
+            start_date=start_date.toordinal(),
+            end_date=end_date.toordinal(),
+            vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
+                                                          epi_data.last_burnt_date,
+                                                          epi_data.end_date),
+            peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
+                                                          epi_data.last_burnt_date,
+                                                          epi_data.end_date),
+            seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
+                                                          epi_data.last_burnt_date,
+                                                          epi_data.end_date),
+            birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
+                                                           epi_data.last_burnt_date,
+                                                           epi_data.end_date)
+        )
 
-    # _debug_run_sim_no_jax_(bugged_vacc_program, epi_data, start_state, start_date, end_date)
-    _write_vacc_program_(vacc_program=bugged_vacc_program,
-                         baseline_file=Path("./experiment_data/vaccination_rates/program_baseline.csv"),
-                         output_path=Path("./working_dir/bugged_program.csv"))
+        print(value)
+
+        return value
+
+    def get_gradient(vacc_rates):
+        value, grad = value_and_grad_func(
+            vacc_rates,
+            epi_data=epi_data,
+            epi_state=start_state,
+            start_date=start_date.toordinal(),
+            end_date=end_date.toordinal(),
+            vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
+                                                          epi_data.last_burnt_date,
+                                                          epi_data.end_date),
+            peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
+                                                          epi_data.last_burnt_date,
+                                                          epi_data.end_date),
+            seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
+                                                          epi_data.last_burnt_date,
+                                                          epi_data.end_date),
+            birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
+                                                           epi_data.last_burnt_date,
+                                                           epi_data.end_date)
+        )
+
+        return grad
 
 
-def _gradient_descent_():
-    pass
+
+    class Wrapper:
+        """
+            Reduces the number of calls to the solver
+        """
+        def __init__(self):
+            self.cache = {}
+
+        def __call__(self, x, *args):
+            fun, grad = value_and_grad_func(x,
+                                            epi_data=epi_data,
+                                            epi_state=start_state,
+                                            start_date=start_date.toordinal(),
+                                            end_date=end_date.toordinal(),
+                                            vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
+                                                                                          epi_data.last_burnt_date,
+                                                                                          epi_data.end_date),
+                                            peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
+                                                                                          epi_data.last_burnt_date,
+                                                                                          epi_data.end_date),
+                                            seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
+                                                                                          epi_data.last_burnt_date,
+                                                                                          epi_data.end_date),
+                                            birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
+                                                                                           epi_data.last_burnt_date,
+                                                                                           epi_data.end_date)
+                                            )
+            print("fun", fun)
+            self.cache['grad'] = grad
+            return fun
+
+        def jac(self, x, *args):
+            return np.array(self.cache.pop('grad'))
+
+    # TODO: fix bounds.
+    # print(bnds)
+
+    def callback(intermediate_result: OptimizeResult):
+        print(intermediate_result)
+
+    bounds = [(0, 1)]*100
+
+    cons = []
+    for factor in range(len(bounds)):
+        lower, upper = bounds[factor]
+        l = {'type': 'ineq',
+             'fun': lambda x, lb=lower, i=factor: x[i] - lb}
+        u = {'type': 'ineq',
+             'fun': lambda x, ub=upper, i=factor: ub - x[i]}
+        cons.append(l)
+        cons.append(u)
+
+    wrapper = Wrapper()
+    # value = minimize(get_value, epi_data.vacc_rates, jac=get_gradient, bounds=bnds, options={"maxiter": 2, "disp": True}, callback=callback)
+    value = minimize(wrapper, np.array(epi_data.vacc_rates), jac=wrapper.jac, constraints=cons, options={"maxiter": 3, "disp": True}, callback=callback, method="COBYLA")
+    print(value)
 
 
 def _debug_run_sim_no_jax_(vacc_program=None, epi_data=None, start_state=None, start_date=None, end_date=None):
@@ -100,15 +190,6 @@ def _debug_run_sim_no_jax_(vacc_program=None, epi_data=None, start_state=None, s
                                                        epi_data.end_date)
     )
     print(cost_3)
-
-
-def get_debug_vacc_program():
-    with open("./working_dir/debug/vacc_program_0", "rb") as f:
-        vacc_program = pickle.load(f)
-    with open("./working_dir/debug/grad_0", "rb") as f:
-        grad = pickle.load(f)
-
-    return vacc_program, grad
 
 
 def _write_vacc_program_(vacc_program, baseline_file: Path, output_path: Path):
