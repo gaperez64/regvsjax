@@ -89,7 +89,6 @@ def main():
         return jnp.array(value, dtype=jnp.float32), grad_norm
 
     # TODO: fix bounds.
-    # print(bnds)
 
     def callback(intermediate_result: OptimizeResult):
         print(intermediate_result)
@@ -107,17 +106,19 @@ def main():
         cons.append(u)
     np.set_printoptions(suppress=True)
 
-    print("INIT:", epi_data.vacc_rates)
+    init_rates = epi_data.vacc_rates
+    # TODO: try out other rates
+
+    print("INIT:", init_rates)
 
     # wrapper = Wrapper()
-    # value = minimize(get_value, epi_data.vacc_rates, jac=get_gradient, bounds=bnds, options={"maxiter": 2, "disp": True}, callback=callback)
-    # value = minimize(wrapper, np.array(epi_data.vacc_rates), jac=wrapper.jac, constraints=cons, options={"maxiter": 4, "disp": True}, callback=callback, method="COBYLA")
-    # value = minimize(get_value_and_grad, np.array(epi_data.vacc_rates), jac=True, constraints=cons, options={"disp": True}, callback=callback, method="COBYLA")
-    # value = minimize(get_value_and_grad, np.array(epi_data.vacc_rates), jac=True, options={"disp": True}, callback=callback, method="SLSQP")
-    # value = minimize(get_value_and_grad, np.array(epi_data.vacc_rates), jac=True, options={"maxiter": 4, "disp": True}, callback=callback)
+    # value = minimize(get_value, init_rates, jac=get_gradient, bounds=bnds, options={"maxiter": 2, "disp": True}, callback=callback)
+    # value = minimize(wrapper, np.array(init_rates), jac=wrapper.jac, constraints=cons, options={"maxiter": 4, "disp": True}, callback=callback, method="COBYLA")
+    # value = minimize(get_value_and_grad, np.array(init_rates), jac=True, constraints=cons, options={"disp": True}, callback=callback, method="COBYLA")
+    # value = minimize(get_value_and_grad, np.array(init_rates), jac=True, options={"disp": True}, callback=callback, method="SLSQP")
+    # value = minimize(get_value_and_grad, np.array(init_rates), jac=True, options={"maxiter": 4, "disp": True}, callback=callback)
     # print(value)
-    _gradient_descent_(val_and_grad=get_value_and_grad, start=epi_data.vacc_rates)
-
+    _gradient_descent_(val_and_grad=get_value_and_grad, start=init_rates)
 
 
 def _gradient_descent_(val_and_grad, start):
