@@ -159,5 +159,15 @@ def get_all_vacc_programs_from_dir(vacc_dir: Path) -> dict[str, list[float]]:
     return programs
 
 
-def get_all_vaccination_programs_from_file(vacc_programs: Path):
-    pass
+def get_all_vaccination_programs_from_file(vacc_programs: Path) -> dict[str, list[float]]:
+    """
+        Reads a CSV file with vaccination programs and returns a dict that maps
+        the name of the vaccination program onto the rates for each age group {0, ..., 99}.
+    """
+
+    df = pd.read_csv(vacc_programs)
+    programs = dict()
+    for col in df.columns:
+        programs[col] = np.array(df[col])
+
+    return programs
