@@ -1,19 +1,15 @@
-from datetime import date
+import argparse
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib import pyplot as plt
 import seaborn as sns
-import sys
 
 from epidem_opt.src.epidata import EpiData
 from epidem_opt.src.simulator import simulate_trajectories
 
 
-# jax.config.update("jax_enable_x64", True)
-
-
-def plot(m, trajectory):
+def plot(epi_data: EpiData, trajectory):
     # We first plot dynamics
     summd = []
     d = 1
@@ -98,27 +94,32 @@ def plot(m, trajectory):
 
 
 def main():
-    epi_data = EpiData(config_path=Path("./config.ini"),
-                       epidem_data_path=Path("./epidem_data"),
-                       econ_data_path=Path("./econ_data"),
-                       qaly_data_path=Path("./qaly_data"),
-                       vaccination_rates_path=Path("./vaccination_rates"), )
-    try:
-        end_date = date.fromisoformat(sys.argv[1])
-    except:
-        end_date = epi_data.last_burnt_date
-    # we also allow to be given a cached data filename and the day that
-    # corresponds
-    if len(sys.argv) > 2:
-        cached = Path(sys.argv[2])
-        cache_date = date.fromisoformat(sys.argv[3])
-        print(f"Cached data file {cached} for date {cache_date}")
-        ts = simulate_trajectories(epi_data=epi_data, end_date=end_date, cache_file=cached, cache_date=cache_date)
-    else:
-        ts = simulate_trajectories(epi_data, end_date)
-    plot(epi_data, ts)
+    arg_parser = argparse.ArgumentParser(prog="Utility to simulate the epidemiological behaviour of a population "
+                                              "under a certain baseline vaccination program.")
+    arg_parser.add_argument("--experiment_data", type=str, required=True,
+                            help="Directory with the vaccination information. It should have sub-folders 'epi_data', "
+                                 "'econ_data', 'vaccination_rates', 'qaly_data'.")
+
+    args = arg_parser.parse_args()
+    experiment_data = Path(args.experiment_data)
+    if not experiment_data.is_dir():
+        print(f"Error: directory '{experiment_data}' does not exist.")
+        exit(1)
+
+    epi_data = EpiData(
+        config_path=experiment_data / "config.ini",
+        epidem_data_path=experiment_data / "epidem_data",
+        econ_data_path=experiment_data / "econ_data",
+        qaly_data_path=experiment_data / "qaly_data",
+        vaccination_rates_path=experiment_data / "vaccination_rates"
+    )
+
+    trajectory = simulate_trajectories(epi_data=epi_data, begin_date=epi_data.start_date,
+                                       end_date=epi_data.last_burnt_date,
+                                       start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
+
+    plot(epi_data=epi_data, trajectory=trajectory)
 
 
 if __name__ == "__main__":
-    # TODO: call, save stuff
     main()
