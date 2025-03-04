@@ -11,6 +11,8 @@ from epidem_opt.src.simulator import simulate_cost, date_to_ordinal_set
 
 from scipy.optimize import minimize, OptimizeResult
 
+from epidem_opt.src.vacc_programs import get_all_vaccination_programs_from_file
+
 
 # jax.config.update("jax_enable_x64", True)
 
@@ -88,40 +90,25 @@ def main():
 
         return jnp.array(value, dtype=jnp.float32), grad_norm
 
-    # TODO: fix bounds.
+    vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=experiment_data / "vacc_programs.csv")
 
-    def callback(intermediate_result: OptimizeResult):
-        print(intermediate_result)
-
-    bounds = [(0.0, 1.0)]*100
-
-    cons = []
-    for factor in range(len(bounds)):
-        lower, upper = bounds[factor]
-        l = {'type': 'ineq',
-             'fun': lambda x, lb=lower, i=factor: x[i] - lb}
-        u = {'type': 'ineq',
-             'fun': lambda x, ub=upper, i=factor: ub - x[i]}
-        cons.append(l)
-        cons.append(u)
-    np.set_printoptions(suppress=True)
-
-    init_rates = epi_data.vacc_rates
+    init_rates = vacc_rates["program_a16-c23-01"]
+    # init_rates = epi_data.vacc_rates
     # TODO: try out other rates
 
     print("INIT:", init_rates)
 
-    # wrapper = Wrapper()
-    # value = minimize(get_value, init_rates, jac=get_gradient, bounds=bnds, options={"maxiter": 2, "disp": True}, callback=callback)
-    # value = minimize(wrapper, np.array(init_rates), jac=wrapper.jac, constraints=cons, options={"maxiter": 4, "disp": True}, callback=callback, method="COBYLA")
-    # value = minimize(get_value_and_grad, np.array(init_rates), jac=True, constraints=cons, options={"disp": True}, callback=callback, method="COBYLA")
-    # value = minimize(get_value_and_grad, np.array(init_rates), jac=True, options={"disp": True}, callback=callback, method="SLSQP")
-    # value = minimize(get_value_and_grad, np.array(init_rates), jac=True, options={"maxiter": 4, "disp": True}, callback=callback)
     # print(value)
     _gradient_descent_(val_and_grad=get_value_and_grad, start=init_rates)
 
 
 def _gradient_descent_(val_and_grad, start):
+    """
+        TODO:
+            - convergence
+            - check if normalisation is OK
+            - 
+    """
     cur = start
     for i in range(50):
         print("Rates:", cur)
