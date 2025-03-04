@@ -79,10 +79,8 @@ def main():
                                                            epi_data.last_burnt_date,
                                                            epi_data.end_date)
         )
-        program_costs[program_name] = cost
 
-        if i >= 5:
-            break
+        program_costs[program_name] = cost
 
     df = pd.DataFrame(program_costs.items(), columns=['Program Name', 'Cost'])
     df.to_csv(output_file, index=False)
