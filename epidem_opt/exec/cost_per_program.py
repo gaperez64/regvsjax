@@ -85,7 +85,6 @@ def main():
             break
 
     df = pd.DataFrame(program_costs.items(), columns=['Program Name', 'Cost'])
-
     df.to_csv(output_file, index=False)
 
 
