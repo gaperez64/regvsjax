@@ -26,6 +26,17 @@ python -m epidem_opt.exec.burn --experiment_data ./experiment_data --output_file
 python -m epidem_opt.exec.opti --experiment_data ./experiment_data --burn_in_file ./experiment_data/burned_in.csv
 ```
 
+## Merging vaccination programs into a single CSV
+
+```
+python -m epidem_opt.exec.merge_vacc_programs --vacc_dir ./experiment_data/vaccination_rates --output_file ./experiment_data/vacc_programs.csv
+```
+
+## Computing the costs for all vaccination programs
+
+```
+python -m epidem_opt.exec.cost_per_program --experiment_data ./experiment_data --burn_in_file ./experiment_data/burned_in.csv --output_file ./program_costs.csv
+```
 
 # OLD README (boring)
 
