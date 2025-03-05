@@ -87,6 +87,7 @@ def main():
 
     df = pd.DataFrame(program_costs.items(), columns=['Program Name', 'Cost'])
     df.to_csv(output_file, index=False)
+    print(f"Stored file '{output_file}'")
 
 
 if __name__ == '__main__':
