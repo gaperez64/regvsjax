@@ -82,9 +82,6 @@ def main():
 
         program_costs[program_name] = cost
 
-        if i >= 4:
-            break
-
     df = pd.DataFrame(program_costs.items(), columns=['Program Name', 'Cost'])
     df.to_csv(output_file, index=False)
     print(f"Stored file '{output_file}'")
