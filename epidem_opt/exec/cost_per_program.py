@@ -59,7 +59,7 @@ def main():
 
     program_costs: dict[str, int] = dict()
     for i, (program_name, vacc_program) in enumerate(vacc_rates.items()):
-        print(f"[{i+1}/{len(vacc_rates)}]Simulating program '{program_name}'")
+        print(f"[{i+1}/{len(vacc_rates)}] Simulating program '{program_name}'")
         cost = simulate_cost(
             vacc_program,
             epi_data=epi_data,
@@ -81,6 +81,9 @@ def main():
         )
 
         program_costs[program_name] = cost
+
+        if i >= 4:
+            break
 
     df = pd.DataFrame(program_costs.items(), columns=['Program Name', 'Cost'])
     df.to_csv(output_file, index=False)
