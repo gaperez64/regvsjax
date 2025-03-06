@@ -5,14 +5,26 @@ from typing import Callable
 from epidem_opt.src import epistep
 from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
 
+import jax.numpy as jnp
+
+
+def _get_max_compartment_difference_(actual, expected):
+    """
+        This is the infinity norm of the difference between the two specified vectors.
+        Each vector is expected to be a compartment of 100 age groups.
+    """
+    expected = jnp.asarray(expected)
+    diff = jnp.max(jnp.abs(actual - expected))
+    return diff
+
 
 def check_pop_conservation(old, new):
     (S, E, I, R, V, day) = old
     (Snew, Enew, Inew, Rnew, Vnew, daynew) = new
     tot_pop_before = S.sum() + E.sum() + I.sum() + R.sum() + V.sum()
     tot_pop_after = Snew.sum() + Enew.sum() + Inew.sum() + Rnew.sum() + Vnew.sum()
-    # assert tot_pop_before == tot_pop_after, f"Difference in population: {tot_pop_before-tot_pop_after}"
-    # TODO: check that this matches within 20 units.
+    assert abs(tot_pop_before - tot_pop_after) <= 10000, f"Difference in population: {tot_pop_before-tot_pop_after}"
+    # Max difference: 5 * 100 * 20 = 10000
 
 
 def date_to_ordinal_set(periodic_date: tuple[int, int], begin_date: date, end_date: date):
@@ -61,7 +73,6 @@ def _internal_sim_(epi_data: EpiData,
                    begin_date: int,
                    start_state,
                    end_date: int,
-                  # TODO: make into callables for uniformity
                    vacc_dates: set[int],
                    birth_dates: set[int],
                    seed_dates: set[int],

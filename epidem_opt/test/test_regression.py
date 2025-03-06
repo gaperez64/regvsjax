@@ -40,7 +40,8 @@ def test_regression_against_pickled_data():
                                    begin_date=epi_data.start_date,
                                    end_date=end_date,
                                    drop_before=date(year=2017, month=8, day=27),
-                                   start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
+                                   start_state=epi_data.start_state(saved_state_file=None, saved_date=None),
+                                   enforce_invariant=True)
 
     # assert against previously stored exact output
     with open(reference_pickle_path, "rb") as f:
@@ -53,9 +54,13 @@ def test_regression_against_pickled_data():
             assert (ref_compartment == actual_compartment).all(), f"Error, {i}-th compartments differ on day {day_nr}."
 
 
-def _compare_compartments_(actual, expected):
-    expected = jax.numpy.asarray(expected)
-    diff = jax.numpy.max(jax.numpy.abs(actual - expected))
+def _get_max_compartment_difference_(actual, expected):
+    """
+        This is the infinity norm of the difference between the two specified vectors.
+        Each vector is expected to be a compartment of 100 age groups.
+    """
+    expected = jnp.asarray(expected)
+    diff = jnp.max(jnp.abs(actual - expected))
     return diff
 
 
@@ -79,20 +84,23 @@ def test_regression_against_regina_data():
                                    begin_date=epi_data.start_date,
                                    end_date=end_date,
                                    drop_before=date(year=2017, month=8, day=27),
-                                   start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
+                                   start_state=epi_data.start_state(saved_state_file=None, saved_date=None),
+                                   enforce_invariant=True)
 
     df = pd.read_csv(reference_csv_path, header=None)
+    # NOTE: each row is a compartment. There are 100 cols per row.
+    #   this means that every day in the simulation comprises 5 rows.
     print("Comparing compartment values with Reg's data")
-    d = 1
     for (S, E, Inf, R, V, *_) in actual:
-        assert _compare_compartments_(actual=S, expected=df.iloc[0]) <= 20
-        assert _compare_compartments_(actual=E, expected=df.iloc[1]) <= 20
-        assert _compare_compartments_(actual=Inf, expected=df.iloc[2]) <= 20
-        assert _compare_compartments_(actual=R, expected=df.iloc[3]) <= 20
-        assert _compare_compartments_(actual=V, expected=df.iloc[4]) <= 20
+        # each row is a compartment of 100 age groups
+        assert _get_max_compartment_difference_(actual=S, expected=df.iloc[0]) <= 20
+        assert _get_max_compartment_difference_(actual=E, expected=df.iloc[1]) <= 20
+        assert _get_max_compartment_difference_(actual=Inf, expected=df.iloc[2]) <= 20
+        assert _get_max_compartment_difference_(actual=R, expected=df.iloc[3]) <= 20
+        assert _get_max_compartment_difference_(actual=V, expected=df.iloc[4]) <= 20
 
+        # advance to the next 5 rows
         df = df.iloc[5:]
-        d += 1
 
 
 def test_regression_against_expected_cost_no_jax():
