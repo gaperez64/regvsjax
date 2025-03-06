@@ -112,11 +112,15 @@ def _gradient_descent_(val_and_grad, start):
     """
     cur = start
     most_recent_valid = cur
+    val = None
     for i in range(50):
         print(f"ITER {i}")
         print("Rates before:", cur)
+        old_val = val
         val, grad = val_and_grad(cur)
         # print(val, grad)
+        if old_val is not None:
+            print("Difference:", old_val - val)
 
         cur -= 0.005 * grad
         if np.all(cur <= 1) and np.all(cur >= 0):
