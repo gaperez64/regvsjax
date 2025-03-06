@@ -95,7 +95,7 @@ def test_regression_against_regina_data():
         d += 1
 
 
-def test_regression_against_expected_cost():
+def test_regression_against_expected_cost_no_jax():
     """
         Test the computed cost. This does not use Jax.
     """
@@ -123,7 +123,7 @@ def test_regression_against_expected_cost():
     assert cost == 2774434816.0
 
 
-def test_regression_against_expected_gradient():
+def test_regression_against_expected_cost_jax():
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
     reference_pickle_path = regina_reference_data_folder / "expected_gradients.pickle"
 
@@ -149,6 +149,33 @@ def test_regression_against_expected_gradient():
         birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
     )
     assert actual_cost == 2774434816.0
+
+
+def test_regression_against_expected_gradient():
+    regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
+    reference_pickle_path = regina_reference_data_folder / "expected_gradients.pickle"
+
+    epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
+                       epidem_data_path=regina_reference_data_folder / "epidem_data",
+                       econ_data_path=regina_reference_data_folder / "econ_data",
+                       qaly_data_path=regina_reference_data_folder / "qaly_data",
+                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
+
+    grad_cost = jax.value_and_grad(simulate_cost)
+
+    begin_date = epi_data.start_date
+    end_date = epi_data.last_burnt_date
+    actual_cost, actual_grad = grad_cost(
+        epi_data.vacc_rates,
+        epi_data=epi_data,
+        epi_state=epi_data.start_state(),
+        start_date=begin_date.toordinal(),
+        end_date=end_date.toordinal(),
+        vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date, begin_date, end_date),
+        peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date, begin_date, end_date),
+        seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date, begin_date, end_date),
+        birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday, begin_date, end_date)
+    )
 
     with open(reference_pickle_path, 'rb') as ref_grad_file:
         ref_grad = pickle.load(ref_grad_file)

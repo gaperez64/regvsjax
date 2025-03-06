@@ -36,7 +36,8 @@ def simulate_trajectories(epi_data: EpiData,
                           begin_date: date,
                           start_state,
                           end_date: date,
-                          drop_before: date = date(year=2000, month=1, day=1)):
+                          drop_before: date = date(year=2000, month=1, day=1),
+                          enforce_invariant: bool = False):
     """
         Wrapper that accepts datetime objects.
     """
@@ -52,18 +53,21 @@ def simulate_trajectories(epi_data: EpiData,
 
     return _internal_sim_(epi_data=epi_data, begin_date=begin_date_int, end_date=end_date_int,
                           vacc_dates=vacc_dates, birth_dates=birth_dates, seed_dates=seed_dates, peak_dates=peak_dates,
-                          start_state=start_state, drop_before=drop_before_int)
+                          start_state=start_state, drop_before=drop_before_int,
+                          enforce_invariant=enforce_invariant)
 
 
 def _internal_sim_(epi_data: EpiData,
                    begin_date: int,
                    start_state,
                    end_date: int,
+                  # TODO: make into callables for uniformity
                    vacc_dates: set[int],
                    birth_dates: set[int],
                    seed_dates: set[int],
                    peak_dates: set[int],
-                   drop_before: int
+                   drop_before: int,
+                   enforce_invariant: bool
                    ):
     """
         Function that simulates the epidemic and returns the trajectories.
@@ -72,7 +76,6 @@ def _internal_sim_(epi_data: EpiData,
 
         Simulator loop that only accepts integers as dates.
 
-        TODO: asserts that the days align properly?
     """
 
     epi_state = start_state
@@ -98,10 +101,12 @@ def _internal_sim_(epi_data: EpiData,
         # (newS, newE, newInf, newR, newV, day + 1,
         #             ambCost, noMedCost, hospCost, vaxCost,
         #             ambQaly, noMedQaly, hospQaly, lifeyrsLost)
+        epi_state_old = epi_state
         ext_state = epistep.step(epi_data, *epi_state)
 
         # sanity check
-        # check_pop_conservation(state, ext_state[0:6])
+        if enforce_invariant:
+            check_pop_conservation(old=epi_state_old[0:6], new=ext_state[0:6])
 
         # state = (newS, newE, newInf, newR, newV, day)
         epi_state = ext_state[0:6]

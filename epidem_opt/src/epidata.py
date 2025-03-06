@@ -116,7 +116,7 @@ class EpiData:
         self.vaccination_rates_path = vaccination_rates_path
         self.switch_program(program="baseline")
 
-    def start_state(self, saved_state_file: Path = None, saved_date: date = None
+    def start_state(self, saved_state_file: Path = None, saved_date: date = None,
                     ) -> tuple[Array, Array, Array, Array, Array, int]:
         """
             Retrieve the start state.
@@ -141,9 +141,15 @@ class EpiData:
             V = jnp.asarray(df["V"].values, dtype=jnp.float64)
             tot_pop = S.sum() + E.sum() + I.sum() + R.sum() + V.sum()
 
+            # self.tot_pop = sum over all ages
+            # tot_pop = sum over all compartments, over all ages in each compartment
+
+
             # Sanity check: the population of the file we read is the same as at the beginning
-            # assert tot_pop == self.tot_pop  # TODO: re-implement this by checking element-wise that the deviation
-            #   is less than 20.
+
+            #self.tot_pop = self.init_pop.sum()  # total amount of people at the start
+            # print(tot_pop - self.tot_pop)
+            # assert tot_pop == self.tot_pop  # TODO:the error here is -117717.0, which is too much.
             start_date = saved_date
 
         # Special computation for day
