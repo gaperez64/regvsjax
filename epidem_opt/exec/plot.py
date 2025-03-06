@@ -93,6 +93,16 @@ def plot(epi_data: EpiData, trajectory):
     return
 
 
+def _print_diff_(trajectory):
+    (S_old, E_old, Inf_old, R_old, V_old, *_) = trajectory[0]
+    tot_pop_old = S_old.sum() + E_old.sum() + Inf_old.sum() + R_old.sum() + V_old.sum()
+    for (S, E, Inf, R, V, *_) in trajectory:
+        tot_pop = S.sum() + E.sum() + Inf.sum() + R.sum() + V.sum()
+        # assert tot_pop == tot_pop_old
+        print("Diff:", tot_pop - tot_pop_old)
+        tot_pop_old = tot_pop
+
+
 def main():
     arg_parser = argparse.ArgumentParser(prog="Utility to simulate the epidemiological behaviour of a population "
                                               "under a certain baseline vaccination program.")
@@ -118,6 +128,7 @@ def main():
                                        end_date=epi_data.last_burnt_date,
                                        start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
+    _print_diff_(trajectory=trajectory)
     plot(epi_data=epi_data, trajectory=trajectory)
 
 
