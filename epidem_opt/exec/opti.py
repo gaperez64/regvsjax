@@ -45,6 +45,8 @@ def main():
         vaccination_rates_path=experiment_data / "vaccination_rates"
     )
 
+    np.set_printoptions(suppress=True)
+
     # construct derivative. This will differentiate w.r.t. the vaccination rates.
     value_and_grad_func = jax.value_and_grad(simulate_cost)
 
@@ -82,21 +84,20 @@ def main():
         )
 
         print("value:", value)
-        print("grad:", grad)
+        # print("grad:", grad)
         # grad_norm = (grad - jnp.min(grad)) / np.ptp(grad)  # TODO This does not respect the sign
-        grad_norm = grad / np.ptp(grad)  # TODO This does not respect the sign
+        # grad_norm = grad / np.ptp(grad)
+        grad_norm = grad / np.linalg.norm(grad)
 
-        print("normalised:", grad_norm)
+        print("normalised gradient:", grad_norm)
 
-        return jnp.array(value, dtype=jnp.float32), grad_norm
+        return jnp.array(value, dtype=jnp.float64), grad_norm
 
     vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=experiment_data / "vacc_programs.csv")
 
     init_rates = vacc_rates["program_a16-c23-01"]
     # init_rates = epi_data.vacc_rates
     # TODO: try out other rates
-
-    print("INIT:", init_rates)
 
     # print(value)
     _gradient_descent_(val_and_grad=get_value_and_grad, start=init_rates)
@@ -110,40 +111,47 @@ def _gradient_descent_(val_and_grad, start):
             - 
     """
     cur = start
+    most_recent_valid = cur
     for i in range(50):
-        print("Rates:", cur)
+        print(f"ITER {i}")
+        print("Rates before:", cur)
         val, grad = val_and_grad(cur)
         # print(val, grad)
 
         cur -= 0.005 * grad
+        if np.all(cur <= 1) and np.all(cur >= 0):
+            most_recent_valid = cur
+        else:
+            print("=== CONSTRAINT VIOLATION ===")
+    print(most_recent_valid)
 
 
-def _debug_run_sim_no_jax_(vacc_program=None, epi_data=None, start_state=None, start_date=None, end_date=None):
-    """
-        Compute the cost of the vaccination program without touching any JAX functionality.
-
-        Something seems to go wrong after the vaccination day.
-    """
-    cost_3 = simulate_cost(
-        vacc_program,
-        epi_data=epi_data,
-        epi_state=start_state,
-        start_date=start_date.toordinal(),
-        end_date=end_date.toordinal(),
-        vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
-                                                      epi_data.last_burnt_date,
-                                                      epi_data.end_date),
-        peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
-                                                      epi_data.last_burnt_date,
-                                                      epi_data.end_date),
-        seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
-                                                      epi_data.last_burnt_date,
-                                                      epi_data.end_date),
-        birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
-                                                       epi_data.last_burnt_date,
-                                                       epi_data.end_date)
-    )
-    print(cost_3)
+# def _debug_run_sim_no_jax_(vacc_program=None, epi_data=None, start_state=None, start_date=None, end_date=None):
+#     """
+#         Compute the cost of the vaccination program without touching any JAX functionality.
+#
+#         Something seems to go wrong after the vaccination day.
+#     """
+#     cost_3 = simulate_cost(
+#         vacc_program,
+#         epi_data=epi_data,
+#         epi_state=start_state,
+#         start_date=start_date.toordinal(),
+#         end_date=end_date.toordinal(),
+#         vacc_dates=lambda x: x in date_to_ordinal_set(epi_data.vacc_date,
+#                                                       epi_data.last_burnt_date,
+#                                                       epi_data.end_date),
+#         peak_dates=lambda x: x in date_to_ordinal_set(epi_data.peak_date,
+#                                                       epi_data.last_burnt_date,
+#                                                       epi_data.end_date),
+#         seed_dates=lambda x: x in date_to_ordinal_set(epi_data.seed_date,
+#                                                       epi_data.last_burnt_date,
+#                                                       epi_data.end_date),
+#         birth_dates=lambda x: x in date_to_ordinal_set(epi_data.birthday,
+#                                                        epi_data.last_burnt_date,
+#                                                        epi_data.end_date)
+#     )
+#     print(cost_3)
 
 
 def _write_vacc_program_(vacc_program, baseline_file: Path, output_path: Path):
