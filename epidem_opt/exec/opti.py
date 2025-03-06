@@ -24,6 +24,8 @@ def main():
                                  "'econ_data', 'vaccination_rates', 'qaly_data'.")
     arg_parser.add_argument('--burn_in_file', type=str, required=True,
                             help="CSV file with the results of the burn-in step.")
+    arg_parser.add_argument('--init_program', type=str, required=True,
+                            help="The name of the vacc. program from which we start the gradient descent.")
 
     args = arg_parser.parse_args()
 
@@ -36,6 +38,8 @@ def main():
     if not burn_in_file.is_file():
         print(f"Error: burn-in file '{burn_in_file}' does not exist.")
         exit(1)
+
+    init_program_name = args.init_program
 
     epi_data = EpiData(
         config_path=experiment_data / "config.ini",
@@ -63,6 +67,9 @@ def main():
     end_date = epi_data.end_date
 
     def get_value_and_grad(vacc_rates):
+        """
+            Wrapper that invokes the grad function for the start values and appropriate dates.
+        """
         value, grad = value_and_grad_func(
             vacc_rates,
             epi_data=epi_data,
@@ -84,40 +91,40 @@ def main():
         )
 
         print("value:", value)
-        # print("grad:", grad)
-        # grad_norm = (grad - jnp.min(grad)) / np.ptp(grad)  # TODO This does not respect the sign
-        # grad_norm = grad / np.ptp(grad)
         grad_norm = grad / np.linalg.norm(grad)
 
         print("normalised gradient:", grad_norm)
 
         return jnp.array(value, dtype=jnp.float64), grad_norm
 
+    # read vaccination programs
     vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=experiment_data / "vacc_programs.csv")
 
-    init_rates = vacc_rates["program_a16-c23-01"]
-    # init_rates = epi_data.vacc_rates
-    # TODO: try out other rates
+    # check if the user specified a valid vaccination program
+    if init_program_name not in vacc_rates:
+        print(f"Error, invalid vaccination program '{init_program_name}'.")
+        exit(1)
 
-    # print(value)
-    _gradient_descent_(val_and_grad=get_value_and_grad, start=init_rates)
+    # do gradient descent
+    init_rates = vacc_rates[init_program_name]
+    _gradient_descent_(val_and_grad_func=get_value_and_grad, init_rates=init_rates)
 
 
-def _gradient_descent_(val_and_grad, start):
+def _gradient_descent_(val_and_grad_func, init_rates):
     """
         TODO:
             - convergence
             - check if normalisation is OK
             - 
     """
-    cur = start
+    cur = init_rates
     most_recent_valid = cur
     val = None
     for i in range(50):
         print(f"ITER {i}")
         print("Rates before:", cur)
         old_val = val
-        val, grad = val_and_grad(cur)
+        val, grad = val_and_grad_func(cur)
         # print(val, grad)
         if old_val is not None:
             print("Difference:", old_val - val)
