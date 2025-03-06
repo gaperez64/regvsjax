@@ -18,7 +18,10 @@ def _get_max_compartment_difference_(actual, expected):
     return diff
 
 
-def check_pop_conservation(old, new):
+def _check_pop_conservation_(old, new):
+    """
+        Verify that the total pop before and after the iteration differs by less than 10.000.
+    """
     (S, E, I, R, V, day) = old
     (Snew, Enew, Inew, Rnew, Vnew, daynew) = new
     tot_pop_before = S.sum() + E.sum() + I.sum() + R.sum() + V.sum()
@@ -86,7 +89,6 @@ def _internal_sim_(epi_data: EpiData,
         This is used for the "burn-in" step.
 
         Simulator loop that only accepts integers as dates.
-
     """
 
     epi_state = start_state
@@ -117,7 +119,7 @@ def _internal_sim_(epi_data: EpiData,
 
         # sanity check
         if enforce_invariant:
-            check_pop_conservation(old=epi_state_old[0:6], new=ext_state[0:6])
+            _check_pop_conservation_(old=epi_state_old[0:6], new=ext_state[0:6])
 
         # state = (newS, newE, newInf, newR, newV, day)
         epi_state = ext_state[0:6]
