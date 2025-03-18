@@ -101,7 +101,7 @@ def main():
 
 
     # do gradient descent, starting from the baseline program
-    modified_program = _gradient_descent_(val_and_grad_func=get_value_and_grad, init_rates=vacc_rates)
+    modified_program = _gradient_descent_(val_and_grad_func=get_value_and_grad, init_rates=epi_data.vacc_rates)
 
     _write_vacc_program_(vacc_program=modified_program, eff_rates=get_efficacy_vector(),
                          output_path=Path("./working_dir/modified_program.csv"))
