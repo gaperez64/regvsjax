@@ -11,7 +11,7 @@ from epidem_opt.src.simulator import simulate_cost, date_to_ordinal_set
 
 from scipy.optimize import minimize, OptimizeResult
 
-from epidem_opt.src.vacc_programs import get_efficacy_vector
+from epidem_opt.src.vacc_programs import get_efficacy_vector, get_vacc_program
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -40,14 +40,14 @@ def main():
         exit(1)
 
     init_program_name = args.init_program
+    vacc_rates = get_vacc_program(experiment_data / "vacc_programs.csv", program_name=init_program_name)
 
     epi_data = EpiData(
         config_path=experiment_data / "config.ini",
         epidem_data_path=experiment_data / "epidem_data",
         econ_data_path=experiment_data / "econ_data",
         qaly_data_path=experiment_data / "qaly_data",
-        vaccination_rates_path=experiment_data / "vacc_programs.csv",
-        baseline_program_name=init_program_name
+        vacc_rates=vacc_rates
     )
 
     np.set_printoptions(suppress=True)
@@ -98,8 +98,10 @@ def main():
 
         return jnp.array(value, dtype=jnp.float64), grad_norm
 
+
+
     # do gradient descent, starting from the baseline program
-    modified_program = _gradient_descent_(val_and_grad_func=get_value_and_grad, init_rates=epi_data.vacc_rates)
+    modified_program = _gradient_descent_(val_and_grad_func=get_value_and_grad, init_rates=vacc_rates)
 
     _write_vacc_program_(vacc_program=modified_program, eff_rates=get_efficacy_vector(),
                          output_path=Path("./working_dir/modified_program.csv"))

@@ -7,6 +7,7 @@ import seaborn as sns
 
 from epidem_opt.src.epidata import EpiData
 from epidem_opt.src.simulator import simulate_trajectories
+from epidem_opt.src.vacc_programs import get_vacc_program, read_vacc_program
 
 
 def plot(epi_data: EpiData, trajectory):
@@ -108,7 +109,13 @@ def main():
                                               "under a certain baseline vaccination program.")
     arg_parser.add_argument("--experiment_data", type=str, required=True,
                             help="Directory with the vaccination information. It should have sub-folders 'epi_data', "
-                                 "'econ_data', 'vaccination_rates', 'qaly_data'.")
+                                 "'econ_data', 'vaccination_rates', 'qaly_data', as well as a file 'config.ini'.")
+
+    vacc_program_options = arg_parser.add_mutually_exclusive_group(required=True)
+    vacc_program_options.add_argument('--program_name', default=None, type=str,
+                                      help="Name of the vaccination program in the summary CSV")
+    vacc_program_options.add_argument('--program_path', default=None, type=str,
+                                      help="Path to a CSV file with a single vaccination program.")
 
     args = arg_parser.parse_args()
     experiment_data = Path(args.experiment_data)
@@ -116,19 +123,28 @@ def main():
         print(f"Error: directory '{experiment_data}' does not exist.")
         exit(1)
 
+    if args.program_path is not None:
+        vacc_rates = read_vacc_program(vacc_program_path=Path(args.program_path))
+    elif args.program_name is not None:
+        init_program_name = args.program_name
+        vacc_rates_path = experiment_data / "vacc_programs.csv"
+        vacc_rates = get_vacc_program(vacc_rates_path, program_name=init_program_name)
+    else:
+        raise ValueError("Error, missing argument!")
+
     epi_data = EpiData(
         config_path=experiment_data / "config.ini",
         epidem_data_path=experiment_data / "epidem_data",
         econ_data_path=experiment_data / "econ_data",
         qaly_data_path=experiment_data / "qaly_data",
-        vaccination_rates_path=experiment_data / "vaccination_rates"
+        vacc_rates=vacc_rates
     )
 
     trajectory = simulate_trajectories(epi_data=epi_data, begin_date=epi_data.start_date,
                                        end_date=epi_data.last_burnt_date,
                                        start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
-    _print_diff_(trajectory=trajectory)
+    # _print_diff_(trajectory=trajectory)
     plot(epi_data=epi_data, trajectory=trajectory)
 
 

@@ -37,6 +37,7 @@ def read_cube(vacc_prog_summary: Path) -> VaccinationCube:
     """
         Read the vaccination min/max-rates for all age groups.
 
+        This expects that the min and max rates have already been computed for all vacc programs.
         The specified file must have three columns: age_group, min_rate, max_rate.
     """
     df = pd.read_csv(vacc_prog_summary)
@@ -65,6 +66,43 @@ def read_cube(vacc_prog_summary: Path) -> VaccinationCube:
     return VaccinationCube(min_rates=min_rates, max_rates=max_rates)
 
 
+def read_vacc_program(vacc_program_path: Path) -> tuple[str, list[float]]:
+    """
+        Read a single vaccination program stored in the CSV file.
+
+        Three columns expected: "age", "rate", "efficacy". One row per age groups 0->99.
+    """
+    # read CSV
+    df = pd.read_csv(vacc_program_path)
+    vacc_program_name = vacc_program_path.stem
+
+    # extract age group and vaccination rate columns
+    try:
+        age_col = [col for col in df.columns if 'age' in col.lower()][0]
+        rate_col = [col for col in df.columns if 'rate' in col.lower()][0]
+        efficacy_col = [col for col in df.columns if 'efficacy' in col.lower()][0]
+    except IndexError as e:
+        print(f"Error when reading in vaccination program '{vacc_program_path.name}':", str(vacc_program_path))
+        print(str(e))
+        exit(1)
+
+    # Sanity check: all ages need to be correctly specified
+    ages = set(int(age) for age in df[age_col].unique())
+    assert ages == set(range(100))
+
+    rates = np.array([rate for rate in df[rate_col]])
+    assert np.all(rates >= 0) and np.all(rates <= 1)
+
+    # Sanity check: all vaccination programs use the same vaccine.
+    efficacy_vals = np.array([rate for rate in df[efficacy_col]])
+    expected_efficacy_vals = np.array(get_efficacy_vector())
+    # TODO: why are differences of 0.01 allowed??
+    assert np.allclose(efficacy_vals, expected_efficacy_vals, atol=0.01), \
+        f"Error when reading program '{vacc_program_path}'."
+
+    return vacc_program_name, rates
+
+
 def read_min_max_rates(vacc_dir: Path) -> dict:
     """
         Given a directory with vaccination programs, this will the minimum and maximum rates for
@@ -79,30 +117,13 @@ def read_min_max_rates(vacc_dir: Path) -> dict:
     max_rates = {age: float("-inf") for age in range(100)}
     min_files = {age: "" for age in range(100)}
     max_files = {age: "" for age in range(100)}
+
     # iterate over all CSVs
-    # for filename in os.listdir(directory):
     for vacc_program_path in vacc_dir.glob("*.csv"):
-        # read CSV
-        df = pd.read_csv(vacc_program_path)
+        program_name, program_rates = read_vacc_program(vacc_program_path=vacc_program_path)
 
-        # extract age group and vaccination rate columns
-        try:
-            age_col = [col for col in df.columns if 'age' in col.lower()][0]
-            rate_col = [col for col in df.columns if 'rate' in col.lower()][0]
-        except IndexError as e:
-            print(f"Error when reading in vaccination program '{vacc_program_path.name}':", str(vacc_program_path))
-            print(str(e))
-            exit(1)
-
-        # sanity check: every vaccination program needs to specify rates for all the age groups
-        ages = set(int(age) for age in df[age_col].unique())
-        assert ages == set(min_rates.keys())
-
-        # iterate through each row to extract age and rate
-        for index, row in df.iterrows():
-            age = int(row[age_col])
-            vaccination_rate = float(row[rate_col])
-
+        # go over all rates for each age 0 -> 99
+        for age, vaccination_rate in enumerate(program_rates):
             # Obtain min rate and corresponding CSV file
             if vaccination_rate < min_rates[age]:
                 min_rates[age] = vaccination_rate
@@ -112,6 +133,7 @@ def read_min_max_rates(vacc_dir: Path) -> dict:
             if vaccination_rate > max_rates[age]:
                 max_rates[age] = vaccination_rate
                 max_files[age] = vacc_program_path.name
+
     # sanity check
     assert set(min_files.keys()) == set(max_files.keys()) == set(min_rates.keys()) == set(max_rates.keys())
     # create output CSV
@@ -130,43 +152,17 @@ def get_all_vacc_programs_from_dir(vacc_dir: Path) -> dict[str, list[float]]:
     """
     programs = dict()
     for vacc_program_path in vacc_dir.glob("*.csv"):
-        # read CSV
-        df = pd.read_csv(vacc_program_path)
-        vacc_program_name = vacc_program_path.stem
-
-        # extract age group and vaccination rate columns
-        try:
-            age_col = [col for col in df.columns if 'age' in col.lower()][0]
-            rate_col = [col for col in df.columns if 'rate' in col.lower()][0]
-            efficacy_col = [col for col in df.columns if 'efficacy' in col.lower()][0]
-        except IndexError as e:
-            print(f"Error when reading in vaccination program '{vacc_program_path.name}':", str(vacc_program_path))
-            print(str(e))
-            exit(1)
-
-        # Sanity check: all ages need to be correctly specified
-        ages = set(int(age) for age in df[age_col].unique())
-        assert ages == set(range(100))
-
-        rates = np.array([rate for rate in df[rate_col]])
-        assert np.all(rates >= 0) and np.all(rates <= 1)
-
-        # Sanity check: all vaccination programs use the same vaccine.
-        efficacy_vals = np.array([rate for rate in df[efficacy_col]])
-        expected_efficacy_vals = np.array(get_efficacy_vector())
-        # TODO: why are differences of 0.01 allowed??
-        assert np.allclose(efficacy_vals, expected_efficacy_vals, atol=0.01), \
-            f"Error when reading program '{vacc_program_path}'."
-
-
-        programs[vacc_program_name] = rates
+        program_name, program_rates = read_vacc_program(vacc_program_path=vacc_program_path)
+        programs[program_name] = program_rates
 
     return programs
 
 
 def get_efficacy_vector() -> list[float]:
     """
-        Get the efficacy of each vaccination program per age group.
+        Get the efficacy of each vaccination program per age groups 0 -> 99.
+
+        All vaccination programs in this experiment use these efficacy values.
     """
     return [
         0.5241, 0.5241, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57,
@@ -191,3 +187,15 @@ def get_all_vaccination_programs_from_file(vacc_programs: Path) -> dict[str, lis
         programs[col] = np.array(df[col])
 
     return programs
+
+
+def get_vacc_program(vacc_programs: Path, program_name: str) -> list[float]:
+    """
+        Gives the vaccination rates for age groups 0 -> 99 for the program with the specified name
+        stored in the specified summary-CSV. The summary has one column per vaccination program.
+    """
+    vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=vacc_programs)
+    if program_name not in vacc_rates:
+        print(f"Error, invalid vaccination program '{program_name}'. "
+              f"Please specify the name of an existing vaccination program.")
+    return vacc_rates[program_name]

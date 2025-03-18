@@ -29,8 +29,9 @@ class EpiData:
                  epidem_data_path: Path,
                  econ_data_path: Path,
                  qaly_data_path: Path,
-                 vaccination_rates_path: Path = None,
-                 baseline_program_name: str = "baseline"
+                 # vaccination_rates_path: Path = None,
+                 # baseline_program_name: str = "baseline"
+                 vacc_rates: list[float]
                  ):
         """
             Constructor.
@@ -45,6 +46,9 @@ class EpiData:
         self.omega_imm = cpars.getfloat("omegaImm")
         self.omega_vacc = cpars.getfloat("omegaVacc")
         self.delta = cpars.getfloat("delta")
+
+        self.vacc_rates = vacc_rates
+        assert len(vacc_rates) == 100, "Error, expected rates for 100 age groups."
 
         dpars = config["Disc.Pars"]
         self.seed_inf = dpars.getint("seedInf")
@@ -117,11 +121,13 @@ class EpiData:
             qaly_data_path / config.get("QalyFiles", "discountedLifeExpectancy"))
 
         # vaccination stats
-        vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=vaccination_rates_path)
-        if baseline_program_name not in vacc_rates:
-            print(f"Error, invalid vaccination program '{baseline_program_name}'. "
-                  f"Please specify the name of an existing vaccination program.")
-        self.vacc_rates = vacc_rates[baseline_program_name]
+        # vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=vaccination_rates_path)
+        # if baseline_program_name not in vacc_rates:
+        #     print(f"Error, invalid vaccination program '{baseline_program_name}'. "
+        #           f"Please specify the name of an existing vaccination program.")
+        # self.vacc_rates = vacc_rates[baseline_program_name]
+        # self.vacc_rates = vacc_rates
+
 
     def start_state(self, saved_state_file: Path = None, saved_date: date = None
                     ) -> tuple[Array, Array, Array, Array, Array, int]:
