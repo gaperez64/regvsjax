@@ -153,7 +153,10 @@ def main():
                                        end_date=epi_data.last_burnt_date,
                                        start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
-    # _print_diff_(trajectory=trajectory)
+    # print the loss in total population
+    _print_diff_(trajectory=trajectory)
+
+    # save plots to PNG
     plot(epi_data=epi_data, trajectory=trajectory, output_path=Path("./working_dir"), filename_prefix=plot_prefix)
 
 
