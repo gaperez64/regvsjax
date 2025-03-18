@@ -175,6 +175,24 @@ def get_efficacy_vector() -> list[float]:
     ]
 
 
+def get_efficacy_vector_baseline() -> list[float]:
+    """
+        Get the efficacy of each vaccination program per age groups 0 -> 99.
+
+        All vaccination programs in this experiment use these efficacy values.
+
+        FIXME: why is this different?
+    """
+    return [
+        0.52, 0.52, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57,
+        0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62,
+        0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62,
+        0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.62, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58,
+        0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58,
+        0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58
+    ]
+
+
 def get_all_vaccination_programs_from_file(vacc_programs: Path) -> dict[str, list[float]]:
     """
         Reads a CSV file with vaccination programs and returns a dict that maps
@@ -196,6 +214,7 @@ def get_vacc_program(vacc_programs: Path, program_name: str) -> list[float]:
     """
     vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=vacc_programs)
     if program_name not in vacc_rates:
-        print(f"Error, invalid vaccination program '{program_name}'. "
-              f"Please specify the name of an existing vaccination program.")
+        raise ValueError(f"Error, invalid vaccination program '{program_name}'. "
+                         f"Please specify the name of an existing vaccination program.")
+
     return vacc_rates[program_name]

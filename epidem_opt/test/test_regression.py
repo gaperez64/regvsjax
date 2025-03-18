@@ -6,8 +6,9 @@ from jax import numpy as jnp
 
 import pandas as pd
 
-from epidem_opt.src.epidata import EpiData, JaxFriendlyEpiData
+from epidem_opt.src.epidata import EpiData
 from epidem_opt.src.simulator import simulate_trajectories, simulate_cost, date_to_ordinal_set
+from epidem_opt.src.vacc_programs import get_vacc_program, read_vacc_program
 from epidem_opt.test.conftest import get_test_root
 
 
@@ -30,11 +31,13 @@ def test_regression_against_pickled_data():
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
     reference_pickle_path = regina_reference_data_folder / "exact_trajectories.pickle"
 
+    # vacc_rates = get_vacc_program(regina_reference_data_folder / "vacc_programs.csv", program_name="program_baseline")
+    _, vacc_rates = read_vacc_program(vacc_program_path=regina_reference_data_folder / "vaccination_rates" / "program_baseline.csv")
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
+                       vacc_rates=vacc_rates)
     end_date = date(year=2021, month=12, day=31)
     actual = simulate_trajectories(epi_data=epi_data,
                                    begin_date=epi_data.start_date,
@@ -74,11 +77,12 @@ def test_regression_against_regina_data():
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
     reference_csv_path = regina_reference_data_folder / "output_regina_code.csv"
 
+    vacc_rates = get_vacc_program(regina_reference_data_folder / "vacc_programs.csv", program_name="program_baseline")
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
+                       vacc_rates=vacc_rates)
     end_date = date(year=2021, month=12, day=31)
     actual = simulate_trajectories(epi_data=epi_data,
                                    begin_date=epi_data.start_date,
@@ -93,11 +97,16 @@ def test_regression_against_regina_data():
     print("Comparing compartment values with Reg's data")
     for (S, E, Inf, R, V, *_) in actual:
         # each row is a compartment of 100 age groups
-        assert _get_max_compartment_difference_(actual=S, expected=df.iloc[0]) <= 20
-        assert _get_max_compartment_difference_(actual=E, expected=df.iloc[1]) <= 20
-        assert _get_max_compartment_difference_(actual=Inf, expected=df.iloc[2]) <= 20
-        assert _get_max_compartment_difference_(actual=R, expected=df.iloc[3]) <= 20
-        assert _get_max_compartment_difference_(actual=V, expected=df.iloc[4]) <= 20
+        diff_S = _get_max_compartment_difference_(actual=S, expected=df.iloc[0])
+        assert diff_S <= 20
+        diff_E = _get_max_compartment_difference_(actual=E, expected=df.iloc[1])
+        assert diff_E <= 20
+        diff_Inf = _get_max_compartment_difference_(actual=Inf, expected=df.iloc[2])
+        assert diff_Inf <= 20
+        diff_R = _get_max_compartment_difference_(actual=R, expected=df.iloc[3])
+        assert diff_R <= 20
+        diff_V = _get_max_compartment_difference_(actual=R, expected=df.iloc[3])
+        assert diff_V <= 20
 
         # advance to the next 5 rows
         df = df.iloc[5:]
@@ -109,11 +118,12 @@ def test_regression_against_expected_cost_no_jax():
     """
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
 
+    vacc_rates = get_vacc_program(regina_reference_data_folder / "vacc_programs.csv", program_name="program_baseline")
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
+                       vacc_rates=vacc_rates)
 
     begin_date = epi_data.start_date
     end_date = epi_data.last_burnt_date
@@ -133,13 +143,13 @@ def test_regression_against_expected_cost_no_jax():
 
 def test_regression_against_expected_cost_jax():
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
-    reference_pickle_path = regina_reference_data_folder / "expected_gradients.pickle"
 
+    vacc_rates = get_vacc_program(regina_reference_data_folder / "vacc_programs.csv", program_name="program_baseline")
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
+                       vacc_rates=vacc_rates)
 
     grad_cost = jax.value_and_grad(simulate_cost)
 
@@ -163,11 +173,12 @@ def test_regression_against_expected_gradient():
     regina_reference_data_folder = get_test_root() / "test_files" / "regina_reference"
     reference_pickle_path = regina_reference_data_folder / "expected_gradients.pickle"
 
+    vacc_rates = get_vacc_program(regina_reference_data_folder / "vacc_programs.csv", program_name="program_baseline")
     epi_data = EpiData(config_path=regina_reference_data_folder / "config.ini",
                        epidem_data_path=regina_reference_data_folder / "epidem_data",
                        econ_data_path=regina_reference_data_folder / "econ_data",
                        qaly_data_path=regina_reference_data_folder / "qaly_data",
-                       vaccination_rates_path=regina_reference_data_folder / "vaccination_rates", )
+                       vacc_rates=vacc_rates)
 
     grad_cost = jax.value_and_grad(simulate_cost)
 

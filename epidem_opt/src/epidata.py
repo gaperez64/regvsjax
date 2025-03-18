@@ -8,7 +8,8 @@ import pandas as pd
 from flax import struct
 from jax import Array
 
-from epidem_opt.src.vacc_programs import get_all_vaccination_programs_from_file
+from epidem_opt.src.vacc_programs import get_all_vaccination_programs_from_file, get_efficacy_vector, \
+    get_efficacy_vector_baseline
 
 
 def load_from_csv(fname):
@@ -29,8 +30,6 @@ class EpiData:
                  epidem_data_path: Path,
                  econ_data_path: Path,
                  qaly_data_path: Path,
-                 # vaccination_rates_path: Path = None,
-                 # baseline_program_name: str = "baseline"
                  vacc_rates: list[float]
                  ):
         """
@@ -47,7 +46,11 @@ class EpiData:
         self.omega_vacc = cpars.getfloat("omegaVacc")
         self.delta = cpars.getfloat("delta")
 
-        self.vacc_rates = vacc_rates
+        # efficacy = get_efficacy_vector()
+        # FIXME: the efficacy rates differ for different programs!!!
+        efficacy = get_efficacy_vector_baseline()
+        self.vacc_rates = vacc_rates * efficacy
+
         assert len(vacc_rates) == 100, "Error, expected rates for 100 age groups."
 
         dpars = config["Disc.Pars"]
