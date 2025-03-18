@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import jax.numpy as jnp
+import numpy as np
 import pandas as pd
 from flax import struct
 from jax import Array
@@ -49,7 +50,7 @@ class EpiData:
         # efficacy = get_efficacy_vector()
         # FIXME: the efficacy rates differ for different programs!!!
         efficacy = get_efficacy_vector_baseline()
-        self.vacc_rates = vacc_rates * efficacy
+        self.vacc_rates = np.array(vacc_rates) * np.array(efficacy)
 
         assert len(vacc_rates) == 100, "Error, expected rates for 100 age groups."
 

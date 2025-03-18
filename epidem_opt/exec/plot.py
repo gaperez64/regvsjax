@@ -10,7 +10,7 @@ from epidem_opt.src.simulator import simulate_trajectories
 from epidem_opt.src.vacc_programs import get_vacc_program, read_vacc_program
 
 
-def plot(epi_data: EpiData, trajectory):
+def plot(epi_data: EpiData, trajectory, output_path: Path, filename_prefix: str):
     # We first plot dynamics
     summd = []
     d = 1
@@ -32,7 +32,9 @@ def plot(epi_data: EpiData, trajectory):
         x="Day", y="Population",
         hue="Compartment", style="Compartment"
     )
-    plt.show()
+    plt.savefig(output_path / f"{filename_prefix}_dynamics.png")
+    plt.close()
+    # plt.show()
 
     # Now we plot costs
     summd = []
@@ -55,7 +57,9 @@ def plot(epi_data: EpiData, trajectory):
         hue="Cost", style="Cost",
     )
     plt.yscale("log")
-    plt.show()
+    plt.savefig(output_path / f"{filename_prefix}_cost.png")
+    plt.close()
+    # plt.show()
 
     # Now we plot qaly
     total_cost = 0
@@ -87,7 +91,9 @@ def plot(epi_data: EpiData, trajectory):
         hue="QALY", style="QALY",
     )
     plt.yscale("log")
-    plt.show()
+    plt.savefig(output_path / f"{filename_prefix}_qaly.png")
+    plt.close()
+    # plt.show()
 
     print(f"The price of it all = {total_cost}")
 
@@ -124,9 +130,12 @@ def main():
         exit(1)
 
     if args.program_path is not None:
-        vacc_rates = read_vacc_program(vacc_program_path=Path(args.program_path))
+        program_path = Path(args.program_path)
+        _, vacc_rates = read_vacc_program(vacc_program_path=program_path)
+        plot_prefix = program_path.stem
     elif args.program_name is not None:
         init_program_name = args.program_name
+        plot_prefix = init_program_name
         vacc_rates_path = experiment_data / "vacc_programs.csv"
         vacc_rates = get_vacc_program(vacc_rates_path, program_name=init_program_name)
     else:
@@ -145,7 +154,7 @@ def main():
                                        start_state=epi_data.start_state(saved_state_file=None, saved_date=None))
 
     # _print_diff_(trajectory=trajectory)
-    plot(epi_data=epi_data, trajectory=trajectory)
+    plot(epi_data=epi_data, trajectory=trajectory, output_path=Path("./working_dir"), filename_prefix=plot_prefix)
 
 
 if __name__ == "__main__":
