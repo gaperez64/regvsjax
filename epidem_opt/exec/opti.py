@@ -102,7 +102,7 @@ def main():
 
     # check if the user specified a valid vaccination program
     if init_program_name not in vacc_rates:
-        print(f"Error, invalid vaccination program '{init_program_name}'.")
+        print(f"Error, invalid vaccination program '{init_program_name}'. Please specify the name of an existing vaccination program.")
         exit(1)
 
     # do gradient descent
