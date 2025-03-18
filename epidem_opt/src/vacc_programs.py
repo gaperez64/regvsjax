@@ -8,10 +8,6 @@ class VaccinationCube:
     """
         A hyper-cube that specifies the minimum and maximum vaccination rates
         for each age group.
-
-        TODO: add the discrete points that were present in the vaccination programs.
-               these are vectors with 100 dimensions that allow use to explore the efficacy
-               of each manually-specified vaccination program.
     """
 
     def __init__(self, min_rates: dict[int, float], max_rates: dict[int, float]):
@@ -142,6 +138,7 @@ def get_all_vacc_programs_from_dir(vacc_dir: Path) -> dict[str, list[float]]:
         try:
             age_col = [col for col in df.columns if 'age' in col.lower()][0]
             rate_col = [col for col in df.columns if 'rate' in col.lower()][0]
+            efficacy_col = [col for col in df.columns if 'efficacy' in col.lower()][0]
         except IndexError as e:
             print(f"Error when reading in vaccination program '{vacc_program_path.name}':", str(vacc_program_path))
             print(str(e))
@@ -154,9 +151,32 @@ def get_all_vacc_programs_from_dir(vacc_dir: Path) -> dict[str, list[float]]:
         rates = np.array([rate for rate in df[rate_col]])
         assert np.all(rates >= 0) and np.all(rates <= 1)
 
+        # Sanity check: all vaccination programs use the same vaccine.
+        efficacy_vals = np.array([rate for rate in df[efficacy_col]])
+        expected_efficacy_vals = np.array(get_efficacy_vector())
+        # TODO: why are differences of 0.01 allowed??
+        assert np.allclose(efficacy_vals, expected_efficacy_vals, atol=0.01), \
+            f"Error when reading program '{vacc_program_path}'."
+
+
         programs[vacc_program_name] = rates
 
     return programs
+
+
+def get_efficacy_vector() -> list[float]:
+    """
+        Get the efficacy of each vaccination program per age group.
+    """
+    return [
+        0.5241, 0.5241, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57,
+        0.57, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616,
+        0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616,
+        0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616, 0.616,
+        0.616, 0.616, 0.616, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58,
+        0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58,
+        0.58, 0.58, 0.58
+    ]
 
 
 def get_all_vaccination_programs_from_file(vacc_programs: Path) -> dict[str, list[float]]:
