@@ -11,7 +11,7 @@ from epidem_opt.src.simulator import simulate_cost, date_to_ordinal_set
 
 from scipy.optimize import minimize, OptimizeResult
 
-from epidem_opt.src.vacc_programs import get_all_vaccination_programs_from_file
+from epidem_opt.src.vacc_programs import get_efficacy_vector
 
 
 # jax.config.update("jax_enable_x64", True)
@@ -46,7 +46,8 @@ def main():
         epidem_data_path=experiment_data / "epidem_data",
         econ_data_path=experiment_data / "econ_data",
         qaly_data_path=experiment_data / "qaly_data",
-        vaccination_rates_path=experiment_data / "vaccination_rates"
+        vaccination_rates_path=experiment_data / "vacc_programs.csv",
+        baseline_program_name=init_program_name
     )
 
     np.set_printoptions(suppress=True)
@@ -93,21 +94,15 @@ def main():
         print("value:", value)
         grad_norm = grad / np.linalg.norm(grad)
 
-        print("normalised gradient:", grad_norm)
+        # print("normalised gradient:", grad_norm)
 
         return jnp.array(value, dtype=jnp.float64), grad_norm
 
-    # read vaccination programs
-    vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=experiment_data / "vacc_programs.csv")
+    # do gradient descent, starting from the baseline program
+    modified_program = _gradient_descent_(val_and_grad_func=get_value_and_grad, init_rates=epi_data.vacc_rates)
 
-    # check if the user specified a valid vaccination program
-    if init_program_name not in vacc_rates:
-        print(f"Error, invalid vaccination program '{init_program_name}'. Please specify the name of an existing vaccination program.")
-        exit(1)
-
-    # do gradient descent
-    init_rates = vacc_rates[init_program_name]
-    _gradient_descent_(val_and_grad_func=get_value_and_grad, init_rates=init_rates)
+    _write_vacc_program_(vacc_program=modified_program, eff_rates=get_efficacy_vector(),
+                         output_path=Path("./working_dir/modified_program.csv"))
 
 
 def _gradient_descent_(val_and_grad_func, init_rates):
@@ -120,9 +115,9 @@ def _gradient_descent_(val_and_grad_func, init_rates):
     cur = init_rates
     most_recent_valid = cur
     val = None
-    for i in range(50):
+    for i in range(8):
         print(f"ITER {i}")
-        print("Rates before:", cur)
+        # print("Rates before:", cur)
         old_val = val
         val, grad = val_and_grad_func(cur)
         # print(val, grad)
@@ -134,7 +129,10 @@ def _gradient_descent_(val_and_grad_func, init_rates):
             most_recent_valid = cur
         else:
             print("=== CONSTRAINT VIOLATION ===")
-    print(most_recent_valid)
+            break
+
+    return most_recent_valid
+    # print(most_recent_valid)
 
 
 # def _debug_run_sim_no_jax_(vacc_program=None, epi_data=None, start_state=None, start_date=None, end_date=None):
@@ -165,12 +163,23 @@ def _gradient_descent_(val_and_grad_func, init_rates):
 #     print(cost_3)
 
 
-def _write_vacc_program_(vacc_program, baseline_file: Path, output_path: Path):
-    df_baseline = pd.read_csv(baseline_file)
+def _write_vacc_program_(vacc_program, eff_rates: list[float], output_path: Path):
+    # TODO: do not read the baseline file. Instead, just construct a new file from scratch
+    # df_baseline = pd.read_csv(baseline_file)
     # Spelling error is intentional
-    assert "Coverate rate" in df_baseline.columns
-    df_baseline["Coverate rate"] = vacc_program
-    df_baseline.to_csv(output_path, index=False)
+    # assert "Coverate rate" in df_baseline.columns
+    #
+    # df_baseline["Coverate rate"] = vacc_program
+
+    assert len(vacc_program) == 100, "Error, vaccination programs must specify a rate for every age group 0->99."
+
+    df_vacc_program = pd.DataFrame({
+        "age": np.array(range(0, 100)),
+        "rate": np.array(vacc_program),
+        "efficacy": np.array(eff_rates),
+    })
+
+    df_vacc_program.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":

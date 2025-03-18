@@ -8,6 +8,8 @@ import pandas as pd
 from flax import struct
 from jax import Array
 
+from epidem_opt.src.vacc_programs import get_all_vaccination_programs_from_file
+
 
 def load_from_csv(fname):
     df = pd.read_csv(fname, header=None)
@@ -16,18 +18,20 @@ def load_from_csv(fname):
 
 
 class EpiData:
-    def switch_program(self, program: str):
-        df = pd.read_csv(self.vaccination_rates_path / f"program_{program}.csv")
-        df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
-                                 axis=1)
-        self.vacc_rates = jnp.asarray(df["CovXEff"].values)
-        return self.vacc_rates
+    # def switch_program(self, program: str):
+    #     df = pd.read_csv(self.vaccination_rates_path / f"program_{program}.csv")
+    #     df["CovXEff"] = df.apply(lambda row: row.iloc[1] * row.iloc[2],
+    #                              axis=1)
+    #     self.vacc_rates = jnp.asarray(df["CovXEff"].values)
+    #     return self.vacc_rates
 
     def __init__(self, config_path: Path,
                  epidem_data_path: Path,
                  econ_data_path: Path,
                  qaly_data_path: Path,
-                 vaccination_rates_path: Path):
+                 vaccination_rates_path: Path = None,
+                 baseline_program_name: str = "baseline"
+                 ):
         """
             Constructor.
         """
@@ -113,10 +117,13 @@ class EpiData:
             qaly_data_path / config.get("QalyFiles", "discountedLifeExpectancy"))
 
         # vaccination stats
-        self.vaccination_rates_path = vaccination_rates_path
-        self.switch_program(program="baseline")
+        vacc_rates = get_all_vaccination_programs_from_file(vacc_programs=vaccination_rates_path)
+        if baseline_program_name not in vacc_rates:
+            print(f"Error, invalid vaccination program '{baseline_program_name}'. "
+                  f"Please specify the name of an existing vaccination program.")
+        self.vacc_rates = vacc_rates[baseline_program_name]
 
-    def start_state(self, saved_state_file: Path = None, saved_date: date = None,
+    def start_state(self, saved_state_file: Path = None, saved_date: date = None
                     ) -> tuple[Array, Array, Array, Array, Array, int]:
         """
             Retrieve the start state.
